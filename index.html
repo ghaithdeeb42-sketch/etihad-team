@@ -256,6 +256,15 @@
         .notif-badge { min-width:20px; text-align:center; box-shadow:0 3px 10px rgba(255,59,59,.25); }
         @media(max-width:520px) { .dashboard-layout{padding:12px}.dash-header{padding:12px;gap:10px}.neon-text{font-size:1.05rem}.notify-enable-btn{font-size:.68rem;padding:6px 7px}.grid-cards{gap:10px}.card{padding:15px 8px;min-height:112px}.glass-panel{padding:20px} }
     </style>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "ebcf4eff-47a4-4e7f-a3e2-d1c62a92327b",
+        });
+      });
+    </script>
 </head>
 <body>
 
