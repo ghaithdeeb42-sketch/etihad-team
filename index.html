@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق الفريق التنظيمي</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- الإعدادات العامة --- */
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, #013a3a 0%, #056961 50%, #d4af37 100%);
+            background-size: 200% 200%; animation: gradientBG 10s ease infinite;
+            color: #fff; height: 100vh; overflow: hidden;
+        }
+
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.6s ease-in-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- شاشة البداية --- */
+        #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; }
+        #splash-screen video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- واجهة تسجيل الدخول --- */
+        #login-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 20px; }
+        .header-top-right { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
+        .rotating-logo { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #d4af37; animation: spin 5s linear infinite; object-fit: cover; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .neon-text { font-size: 1.5rem; font-weight: 900; color: #fff; text-shadow: 0 0 5px #d4af37, 0 0 10px #d4af37, 0 0 20px #d4af37; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px; padding: 30px; width: 100%; max-width: 450px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); text-align: center;
+        }
+
+        .input-group { margin-bottom: 15px; text-align: right; }
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%; padding: 12px; border-radius: 10px; border: none; background: rgba(255, 255, 255, 0.2); color: #fff; font-size: 1rem; outline: none;
+        }
+        .input-group input::placeholder, .input-group textarea::placeholder { color: #ddd; }
+        .input-group select option { color: #000; }
+
+        .form-options { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 20px; }
+        .form-options a { color: #d4af37; text-decoration: none; cursor: pointer; }
+
+        .btn-submit {
+            width: 100%; padding: 12px; background: linear-gradient(45deg, #d4af37, #b8962e);
+            border: none; border-radius: 10px; color: #fff; font-size: 1.05rem; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-submit:hover { transform: scale(1.02); }
+
+        .signatures { position: absolute; bottom: 20px; text-align: center; font-size: 0.9rem; color: rgba(255, 255, 255, 0.8); }
+
+        /* --- القائمة الجانبية (تجميع الزجاج المكسور) --- */
+        .sidebar {
+            position: fixed; right: -300px; top: 0; width: 280px; height: 100vh; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(25px);
+            border-left: 1px solid rgba(255,255,255,0.2); z-index: 2000; padding: 60px 0 20px 0; transition: right 0.4s ease-in-out; box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        .sidebar.active { right: 0; animation: glassReassemble 0.7s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+        .close-sidebar { position: absolute; top: 15px; left: 20px; color: #ff4d4d; font-size: 1.8rem; cursor: pointer; transition: 0.3s; }
+        .close-sidebar:hover { transform: rotate(90deg) scale(1.1); }
+
+        @keyframes glassReassemble {
+            0% { opacity: 0; clip-path: polygon(30% 10%, 60% 30%, 90% 0%, 80% 40%, 100% 80%, 50% 90%, 20% 70%, 10% 90%, 20% 50%, 5% 10%); transform: scale(1.15) rotate(8deg); filter: blur(8px); }
+            100% { opacity: 1; clip-path: polygon(0% 0%, 50% 0%, 100% 0%, 100% 50%, 100% 100%, 50% 100%, 0% 100%, 0% 75%, 0% 50%, 0% 25%); transform: scale(1) rotate(0deg); filter: blur(0); }
+        }
+
+        .sidebar a { display: block; padding: 15px 25px; color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.3s; font-size: 1.1rem; }
+        .sidebar a:hover { background: rgba(212, 175, 55, 0.3); padding-right: 35px; color: #d4af37; }
+
+        /* --- واجهات لوحة التحكم --- */
+        .dashboard-layout { height: 100vh; overflow-y: auto; padding: 20px; position: relative; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; border: 1px solid rgba(212, 175, 55, 0.2); }
+        
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; }
+        .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 20px 10px; border-radius: 15px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.3); cursor: pointer; transition: 0.3s; position: relative; }
+        .card:hover { transform: translateY(-5px); background: rgba(212, 175, 55, 0.2); border-color: #d4af37; }
+        .card i { font-size: 2rem; color: #d4af37; margin-bottom: 10px; }
+        .card h3 { font-size: 1rem; }
+
+        /* جرس الإشعارات والعداد */
+        .notif-bell { position: relative; cursor: pointer; font-size: 1.5rem; color: #d4af37; transition: 0.3s; }
+        .notif-bell:hover { transform: scale(1.1); }
+        .notif-badge { position: absolute; top: -8px; right: -10px; background: #ff3b3b; color: #fff; font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 50%; border: 1px solid #fff; }
+
+        /* شريط الخبر العاجل للاجتماعات مع زر الإخفاء */
+        .breaking-news-banner {
+            background: linear-gradient(90deg, #b30000, #ff1a1a, #b30000);
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            animation: pulseUrgent 2s infinite;
+            position: relative;
+        }
+        @keyframes pulseUrgent {
+            0% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.4); }
+            50% { box-shadow: 0 0 22px rgba(255, 215, 0, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.4); }
+        }
+        .breaking-tag {
+            background: #d4af37;
+            color: #013a3a;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .breaking-text { font-weight: bold; font-size: 0.95rem; color: #fff; flex: 1; }
+        .close-breaking-btn {
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.4);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+        .close-breaking-btn:hover { background: #000; color: #d4af37; }
+
+        /* بطاقات الاجتماعات والمهام */
+        .meeting-card, .task-card {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid #d4af37;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            text-align: right;
+            transition: 0.3s;
+        }
+        .meeting-card:hover, .task-card:hover { background: rgba(0, 0, 0, 0.52); }
+        .meeting-meta { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; color: #ddd; font-size: 0.9rem; }
+        .meeting-meta span { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; }
+        .meeting-meta i { color: #d4af37; }
+
+        /* شارات حالة المهمة */
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+        .status-pending { background: #ffc107; color: #000; }
+        .status-accepted { background: #17a2b8; color: #fff; }
+        .status-rejected { background: #dc3545; color: #fff; }
+        .status-completed { background: #007bff; color: #fff; }
+        .status-report_requested { background: #fd7e14; color: #fff; }
+        .status-report_submitted { background: #6f42c1; color: #fff; }
+        .status-approved { background: #28a745; color: #fff; }
+
+        /* معرض صور التقارير */
+        .report-images-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .report-images-grid img { width: 90px; height: 90px; object-fit: cover; border-radius: 10px; border: 2px solid #d4af37; cursor: pointer; transition: 0.2s; }
+        .report-images-grid img:hover { transform: scale(1.08); }
+
+        /* خانة إضافة مهمة متعددة */
+        .task-input-box { background: rgba(255,255,255,0.06); border: 1px dashed rgba(212,175,55,0.5); padding: 15px; border-radius: 12px; margin-bottom: 15px; position: relative; }
+
+        /* استجابات الأعضاء للاجتماع والإشعارات */
+        .response-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: rgba(255,255,255,0.08);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-right: 4px solid #d4af37;
+        }
+        .response-item.accepted { border-right-color: #28a745; }
+        .response-item.rejected { border-right-color: #dc3545; }
+        .response-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #d4af37; flex-shrink: 0; }
+
+        /* بطاقة العضو في قسم الفريق */
+        .team-card { padding: 15px; border-radius: 15px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(212, 175, 55, 0.4); text-align: center; cursor: pointer; transition: 0.3s; position: relative; }
+        .team-card:hover { background: rgba(212, 175, 55, 0.2); transform: scale(1.05); }
+        .team-card img { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; margin-bottom: 10px; }
+        .edit-hint { position: absolute; top: 10px; left: 10px; color: #d4af37; font-size: 1.1rem; }
+
+        /* --- تصميم إدارة المكاتب والملفات الكاملة للأعضاء --- */
+        .office-block { background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(12px); border: 1px solid #d4af37; border-radius: 18px; padding: 20px; margin-bottom: 25px; }
+        .office-block-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 12px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .btn-add-member-office { background: linear-gradient(45deg, #28a745, #1e7e34); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
+        .btn-add-member-office:hover { transform: scale(1.05); }
+
+        .office-member-card { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .office-member-info { display: flex; align-items: center; gap: 15px; }
+        .office-member-info img { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; flex-shrink: 0; }
+        .office-member-details { text-align: right; flex: 1; font-size: 0.9rem; line-height: 1.6; }
+        .rank-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; background: #d4af37; color: #013a3a; margin-top: 4px; }
+        .office-member-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
+        
+        .btn-action { border: none; padding: 7px 14px; border-radius: 8px; color: #fff; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .btn-action:hover { transform: scale(1.05); }
+        .btn-rank-toggle { background: linear-gradient(45deg, #d4af37, #b8962e); color: #013a3a; }
+        .btn-edit-profile { background: #17a2b8; }
+        .btn-remove-office { background: #dc3545; }
+
+        .rank-option-btn { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.5); background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .rank-option-btn:hover, .rank-option-btn.active-rank { background: #d4af37; color: #013a3a; }
+
+        .btn-danger { background: #ff4d4d; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .btn-danger:hover { background: #cc0000; }
+
+        .member-img-display { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; }
+        .welcome-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #013a3a; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #d4af37; z-index: 5000; text-align: center; padding: 20px; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: #013a3a; padding: 25px; border-radius: 15px; width: 95%; max-width: 500px; border: 1px solid #d4af37; max-height: 90vh; overflow-y: auto; }
+        .modal-content::-webkit-scrollbar { width: 5px; } .modal-content::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 5px; }
+
+        @media (min-width: 768px) {
+            .grid-cards { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+            .card { padding: 30px; } .card i { font-size: 2.5rem; margin-bottom: 15px; } .card h3 { font-size: 1.2rem; }
+            .dashboard-layout { padding: 40px; } .glass-panel { padding: 40px; } .neon-text { font-size: 2rem; }
+            .office-member-card { flex-direction: row; align-items: center; justify-content: space-between; }
+            .office-member-actions { border-top: none; padding-top: 0; }
+        }
+
+        /* تحديث بصري عصري ومتناسق */
+        :root { color-scheme: dark; --gold:#d8b45a; --teal:#082e35; --panel:rgba(7,24,32,.76); }
+        body { background: radial-gradient(circle at 12% 8%, #15535a 0, transparent 34%), radial-gradient(circle at 88% 88%, #4d4221 0, transparent 30%), linear-gradient(135deg,#071b24,#0b3439 58%,#172b2c); background-size: auto; animation:none; }
+        .glass-panel,.dash-header,.card,.office-block,.meeting-card,.task-card,.team-card,.office-member-card,.modal-content { background:rgba(8,25,33,.82); border:1px solid rgba(216,180,90,.24); box-shadow:0 16px 42px rgba(0,0,0,.22); backdrop-filter:blur(18px); }
+        .glass-panel { border-radius:24px; }
+        .dash-header { border-radius:18px; position:sticky; top:8px; z-index:50; }
+        .card { border-radius:18px; min-height:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+        .card:hover { transform:translateY(-4px); background:rgba(216,180,90,.12); box-shadow:0 16px 30px rgba(0,0,0,.24); }
+        .card i { color:var(--gold); filter:drop-shadow(0 4px 10px rgba(216,180,90,.15)); }
+        .input-group input,.input-group select,.input-group textarea { background:rgba(255,255,255,.075); border:1px solid rgba(255,255,255,.12); border-radius:12px; transition:border-color .2s,box-shadow .2s; }
+        .input-group input:focus,.input-group select:focus,.input-group textarea:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(216,180,90,.12); }
+        .btn-submit { background:linear-gradient(135deg,#e1c16e,#b28a35); color:#10282b; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,.16); }
+        .btn-submit:hover { transform:translateY(-1px); filter:brightness(1.05); }
+        .neon-text { text-shadow:0 2px 16px rgba(216,180,90,.24); }
+        .sidebar { background:rgba(5,22,29,.97); border-left:1px solid rgba(216,180,90,.24); }
+        .sidebar.active { animation:none; }
+        .response-item { background:rgba(255,255,255,.045); border-radius:14px; }
+        .modal { backdrop-filter:blur(7px); }
+        .notify-enable-btn { border:1px solid rgba(216,180,90,.45); color:#f2d991; background:rgba(216,180,90,.09); border-radius:10px; padding:7px 10px; font-family:'Cairo',sans-serif; font-size:.78rem; cursor:pointer; white-space:nowrap; }
+        .notify-enable-btn:hover { background:rgba(216,180,90,.17); }
+        .notif-badge { min-width:20px; text-align:center; box-shadow:0 3px 10px rgba(255,59,59,.25); }
+        @media(max-width:520px) { .dashboard-layout{padding:12px}.dash-header{padding:12px;gap:10px}.neon-text{font-size:1.05rem}.notify-enable-btn{font-size:.68rem;padding:6px 7px}.grid-cards{gap:10px}.card{padding:15px 8px;min-height:112px}.glass-panel{padding:20px} }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <video id="intro-video" autoplay muted playsinline><source src="vv1.mp4" type="video/mp4"></video>
+    </div>
+
+    <!-- واجهة تسجيل الدخول -->
+    <div id="login-screen" class="hidden fade-in">
+        <div class="header-top-right"><img src="325152.jpg" alt="Logo" class="rotating-logo"><span class="neon-text">الفريق التنظيمي</span></div>
+        <div class="glass-panel">
+            <h2 style="margin-bottom: 20px;">تسجيل الدخول</h2>
+            <div class="input-group"><input type="text" id="username" placeholder="اسم المستخدم"></div>
+            <div class="input-group"><input type="password" id="password" placeholder="كلمة المرور"></div>
+            <div class="form-options">
+                <label><input type="checkbox" id="rememberMe"> تذكرني</label>
+                <a onclick="showModal('forgot-pwd-modal')">هل نسيت كلمة السر؟</a>
+            </div>
+            <button class="btn-submit" id="login-btn" onclick="login()">دخول</button>
+        </div>
+        <div class="signatures"><p>مدير مكتب التدريب و التنظيم: جاكي تقلا</p><p>نائب مدير مكتب التدريب و التنظيم: غيث ديب</p></div>
+    </div>
+
+    <!-- نافذة استعادة كلمة المرور -->
+    <div id="forgot-pwd-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="margin-bottom: 15px; color:#d4af37;">استعادة كلمة المرور</h3>
+            <div class="input-group"><input type="text" id="fp-fullname" placeholder="الاسم الثلاثي"></div>
+            <div class="input-group"><input type="text" id="fp-username" placeholder="اسم المستخدم"></div>
+            <div class="input-group"><input type="text" id="fp-phone" placeholder="رقم الواتساب"></div>
+            <button class="btn-submit" onclick="sendWhatsApp()">تأكيد وإرسال عبر واتساب</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('forgot-pwd-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة الإعدادات -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="margin-bottom: 15px; color:#d4af37;"><i class="fas fa-cog"></i> إعدادات الحساب</h3>
+            <div class="input-group"><input type="text" id="set-username" placeholder="اسم المستخدم (لتسجيل الدخول)"></div>
+            <div class="input-group"><input type="password" id="set-password" placeholder="كلمة السر"></div>
+            <button class="btn-submit" id="save-settings-btn" onclick="saveSettings()">تحديث البيانات</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('settings-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الصورة بحجم كبير -->
+    <div id="image-viewer-modal" class="modal hidden" onclick="closeModal('image-viewer-modal')">
+        <img id="full-size-image" src="" style="max-width:92%; max-height:88vh; border-radius:15px; border:3px solid #d4af37;">
+    </div>
+
+    <div id="welcome-overlay" class="welcome-overlay hidden"><span id="welcome-text" class="fade-in"></span></div>
+
+    <!-- ================= لوحة المالك ================= -->
+    <div id="owner-sidebar" class="sidebar">
+        <i class="fas fa-times close-sidebar" onclick="toggleSidebar('owner-sidebar')"></i>
+        <h3 style="text-align: center; color: #d4af37; margin-bottom: 20px;">لوحة المالك</h3>
+        <a href="#" onclick="showSection('owner-home', 'owner')"><i class="fas fa-home"></i> الرئيسية</a>
+        <a href="#" onclick="showSection('add-manager-section', 'owner')"><i class="fas fa-user-tie"></i> إدارة المدراء</a>
+        <a href="#" onclick="openSettings()"><i class="fas fa-cog"></i> الإعدادات</a>
+        <a href="#" onclick="logout()" style="color: #ff4d4d;"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</a>
+    </div>
+
+    <div id="owner-dashboard" class="dashboard-layout hidden fade-in">
+        <div class="dash-header">
+            <div><i class="fas fa-bars" style="font-size: 1.5rem; cursor: pointer;" onclick="toggleSidebar('owner-sidebar')"></i></div>
+            <div class="neon-text">المالك (Admin) 👑</div>
+        </div>
+        <div id="owner-home" class="dash-section grid-cards">
+            <div class="card" onclick="showSection('add-manager-section', 'owner')"><i class="fas fa-user-tie"></i><h3>إضافة مديرة / نائب</h3></div>
+            <div class="card" onclick="openSettings()"><i class="fas fa-cogs"></i><h3>الإعدادات</h3></div>
+        </div>
+        <div id="add-manager-section" class="dash-section hidden fade-in glass-panel" style="margin: 0 auto;">
+            <h2 style="color: #d4af37; margin-bottom: 20px;">إضافة مديرة أو نائب مدير</h2>
+            <div class="input-group"><input type="text" id="mng-name" placeholder="الاسم الكامل"></div>
+            <div class="input-group"><input type="text" id="mng-username" placeholder="اسم المستخدم"></div>
+            <div class="input-group"><input type="password" id="mng-password" placeholder="كلمة السر"></div>
+            <div class="input-group">
+                <select id="mng-role"><option value="مديرة">مديرة</option><option value="نائب مدير">نائب مدير</option></select>
+            </div>
+            <button class="btn-submit" id="save-manager-btn" onclick="addManager()">حفظ بقاعدة البيانات</button>
+        </div>
+    </div>
+
+    <!-- ================= لوحة المديرة ================= -->
+    <div id="manager-sidebar" class="sidebar">
+        <i class="fas fa-times close-sidebar" onclick="toggleSidebar('manager-sidebar')"></i>
+        <h3 style="text-align: center; color: #d4af37; margin-bottom: 20px;">القائمة التنظيمية</h3>
+        <a href="#" onclick="showSection('manager-home', 'manager')"><i class="fas fa-home"></i> الرئيسية</a>
+        <a href="#" onclick="openAddMemberSection()"><i class="fas fa-user-plus"></i> إضافة عضو جديد</a>
+        <a href="#" onclick="showSection('offices-section', 'manager')"><i class="fas fa-building"></i> المكاتب</a>
+        <a href="#" onclick="openManagerTasksSection()"><i class="fas fa-tasks"></i> المهام</a>
+        <a href="#" onclick="openManagerMeetings()"><i class="fas fa-users"></i> اجتماع</a>
+        <a href="#" onclick="loadTeam()"><i class="fas fa-users-cog"></i> الفريق</a>
+        <a href="#"><i class="fas fa-star"></i> التقييم</a>
+        <a href="#"><i class="fas fa-chart-bar"></i> التقرير</a>
+        <a href="#"><i class="fas fa-history"></i> السجل</a>
+        <a href="#" onclick="openSettings()"><i class="fas fa-cog"></i> الإعدادات</a>
+        <a href="#" onclick="logout()" style="color: #ff4d4d;"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</a>
+    </div>
+
+    <div id="manager-dashboard" class="dashboard-layout hidden fade-in">
+        <div class="dash-header">
+            <div style="display:flex; align-items:center; gap:20px;">
+                <i class="fas fa-bars" style="font-size: 1.5rem; cursor: pointer;" onclick="toggleSidebar('manager-sidebar')"></i>
+                <!-- أيقونة إشعارات المديرة -->
+                <div class="notif-bell" onclick="openNotificationsModal()" title="الإشعارات">
+                    <i class="fas fa-bell"></i>
+                    <span id="manager-notif-badge" class="notif-badge hidden">0</span>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;"><button class="notify-enable-btn" onclick="enableBrowserNotifications()"><i class="fas fa-bell"></i> تفعيل التنبيهات</button><div class="neon-text">مديرتنا 🌹</div></div>
+        </div>
+
+        <!-- المربعات الـ 9 -->
+        <div id="manager-home" class="dash-section grid-cards">
+            <div class="card" onclick="openAddMemberSection()"><i class="fas fa-user-plus"></i><h3>إضافة عضو جديد</h3></div>
+            <div class="card" onclick="showSection('offices-section', 'manager')"><i class="fas fa-building"></i><h3>المكاتب</h3></div>
+            <div class="card" onclick="openManagerTasksSection()"><i class="fas fa-tasks"></i><h3>المهام</h3></div>
+            <div class="card" onclick="openManagerMeetings()"><i class="fas fa-users"></i><h3>اجتماع</h3></div>
+            <div class="card" onclick="loadTeam()"><i class="fas fa-users-cog"></i><h3>الفريق</h3></div>
+            <div class="card"><i class="fas fa-star"></i><h3>التقييم</h3></div>
+            <div class="card"><i class="fas fa-chart-bar"></i><h3>التقرير</h3></div>
+            <div class="card"><i class="fas fa-history"></i><h3>السجل</h3></div>
+            <div class="card" onclick="openSettings()"><i class="fas fa-cog"></i><h3>الإعدادات</h3></div>
+        </div>
+
+        <!-- قسم إضافة العضو -->
+        <div id="add-member-section" class="dash-section hidden fade-in glass-panel" style="margin: 0 auto;">
+            <h2 style="color: #d4af37; margin-bottom: 20px;">إضافة عضو جديد</h2>
+            <div class="input-group"><input type="text" id="new-name" placeholder="الاسم الثلاثي"></div>
+            <div class="input-group"><input type="text" id="new-username" placeholder="اسم المستخدم"></div>
+            <div class="input-group"><input type="password" id="new-password" placeholder="كلمة السر"></div>
+            <div class="input-group"><input type="text" id="new-phone" value="+963" placeholder="رقم الموبايل"></div>
+            <div class="input-group"><label style="color:#d4af37; display:block; text-align:right; margin-bottom:5px;">صورة العضو</label><input type="file" id="new-image" accept="image/*" style="background: transparent;"></div>
+            <div class="input-group">
+                <label style="color:#d4af37; display:block; text-align:right; margin-bottom:5px;">نوع العضو</label>
+                <select id="member-type" onchange="toggleNewMemberOfficeSelect()">
+                    <option value="عضو عام">عضو عام</option>
+                    <option value="عضو مكتب">عضو مكتب</option>
+                </select>
+            </div>
+            <div id="new-member-office-box" class="hidden">
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; text-align:right; margin-bottom:5px;">اختر المكتب</label>
+                    <select id="new-member-office"></select>
+                </div>
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; text-align:right; margin-bottom:5px;">الرتبة داخل المكتب</label>
+                    <select id="new-member-rank">
+                        <option value="عضو مكتب">عضو مكتب</option>
+                        <option value="نائب مشرف">نائب مشرف</option>
+                        <option value="مشرف مكتب">مشرف مكتب</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-submit" id="save-member-btn" onclick="saveMemberToDB()">حفظ العضو</button>
+        </div>
+
+        <!-- خيارات المكاتب -->
+        <div id="offices-section" class="dash-section hidden fade-in">
+            <div class="grid-cards">
+                <div class="card" onclick="showModal('add-office-modal')"><i class="fas fa-plus-circle"></i><h3>إضافة مكتب جديد</h3></div>
+                <div class="card" onclick="loadOffices()"><i class="fas fa-tasks"></i><h3>إدارة المكاتب</h3></div>
+            </div>
+        </div>
+
+        <!-- ================= واجهة المهام للمديرة (إسناد مهام + زر مراقبة المهام) ================= -->
+        <div id="tasks-section" class="dash-section hidden fade-in">
+            <div style="display:flex; justify-content:space-between; align-items:center; max-width:650px; margin: 0 auto 20px auto; flex-wrap:wrap; gap:10px;">
+                <h2 style="color: #d4af37;"><i class="fas fa-tasks"></i> إدارة وتوزيع المهام</h2>
+                <button class="btn-submit" style="width:auto; padding:10px 22px; background:linear-gradient(45deg, #17a2b8, #117a8b);" onclick="openMonitorTasksSection()">
+                    <i class="fas fa-eye"></i> مراقبة المهام
+                </button>
+            </div>
+
+            <div class="glass-panel" style="margin: 0 auto; max-width: 650px;">
+                <h3 style="color:#d4af37; margin-bottom:15px;">إسناد مهمة أو عدة مهام</h3>
+                
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;">توجيه المهام إلى:</label>
+                    <select id="task-target-type" onchange="loadTaskTargetOptions()">
+                        <option value="member">عضو محدد</option>
+                        <option value="office">قسم / مكتب كامل</option>
+                        <option value="all">جميع أعضاء الفريق</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="task-target-select-group">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;" id="task-target-label">اختر العضو:</label>
+                    <select id="task-target-value"></select>
+                </div>
+
+                <hr style="border-color: rgba(212, 175, 55, 0.3); margin: 15px 0;">
+                
+                <div id="dynamic-tasks-inputs">
+                    <div class="task-input-box">
+                        <div class="input-group">
+                            <label style="color:#d4af37; display:block; margin-bottom:5px;">عنوان المهمة (1)</label>
+                            <input type="text" class="task-title-input" placeholder="مثال: تجهيز التقرير الأسبوعي">
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label style="color:#d4af37; display:block; margin-bottom:5px;">تفاصيل المهمة</label>
+                            <textarea class="task-desc-input" rows="2" placeholder="اكتب شرح وتفاصيل المهمة هنا..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-submit" style="background:rgba(255,255,255,0.15); border:1px dashed #d4af37; margin-bottom:15px; font-size:0.95rem;" onclick="addAnotherTaskInputBox()">
+                    <i class="fas fa-plus"></i> إضافة مهمة أخرى لنفس الجهة
+                </button>
+
+                <button class="btn-submit" id="assign-tasks-btn" onclick="submitAssignedTasks()">إرسال وتوكيل المهام 🚀</button>
+            </div>
+        </div>
+
+        <!-- ================= واجهة مراقبة المهام للمديرة ================= -->
+        <div id="monitor-tasks-section" class="dash-section hidden fade-in">
+            <div style="display:flex; justify-content:space-between; align-items:center; max-width:850px; margin: 0 auto 20px auto; flex-wrap:wrap; gap:10px;">
+                <h2 style="color: #d4af37;"><i class="fas fa-clipboard-list"></i> مراقبة المهام وتفاصيل الأعضاء</h2>
+                <button class="btn-submit" style="width:auto; padding:8px 18px;" onclick="openManagerTasksSection()">
+                    <i class="fas fa-plus"></i> إسناد مهام جديدة
+                </button>
+            </div>
+            <div id="monitor-tasks-list" style="max-width: 850px; margin: 0 auto;"></div>
+        </div>
+
+        <!-- واجهة الاجتماعات للمديرة -->
+        <div id="meetings-section" class="dash-section hidden fade-in">
+            <div class="glass-panel" style="margin: 0 auto 30px auto; max-width: 600px;">
+                <h2 style="color: #d4af37; margin-bottom: 20px;"><i class="fas fa-calendar-plus"></i> إعلان اجتماع جديد</h2>
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;">اسم الاجتماع</label>
+                    <input type="text" id="meet-title" placeholder="مثال: الاجتماع الدوري لتقييم الأداء">
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="input-group">
+                        <label style="color:#d4af37; display:block; margin-bottom:5px;">تاريخ الاجتماع</label>
+                        <input type="date" id="meet-date">
+                    </div>
+                    <div class="input-group">
+                        <label style="color:#d4af37; display:block; margin-bottom:5px;">الوقت</label>
+                        <input type="time" id="meet-time">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;">المكان</label>
+                    <input type="text" id="meet-location" placeholder="مثال: مقر الاتحاد / قاعة الاجتماعات">
+                </div>
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;">تحديد المكتب أو الجميع</label>
+                    <select id="meet-target"></select>
+                </div>
+                <button class="btn-submit" id="create-meet-btn" onclick="createMeeting()">إعلان وإرسال للأعضاء 🔔</button>
+            </div>
+
+            <div style="max-width: 750px; margin: 0 auto;">
+                <h3 style="color: #d4af37; margin-bottom: 15px; text-align:center;">الاجتماعات المعلنة (اضغط على الاجتماع لعرض القبول والرفض)</h3>
+                <div id="manager-meetings-list"></div>
+            </div>
+        </div>
+
+        <!-- قسم الفريق -->
+        <div id="team-section" class="dash-section hidden fade-in">
+            <h2 style="color: #d4af37; margin-bottom: 20px; text-align:center;">أعضاء الفريق (اضغط على العضو لعرض الملف والترقية)</h2>
+            <div id="team-container" class="grid-cards"></div>
+        </div>
+
+        <!-- قسم إدارة المكاتب التفصيلي -->
+        <div id="manage-offices-section" class="dash-section hidden fade-in">
+            <div style="display:flex; justify-content:space-between; align-items:center; max-width:850px; margin: 0 auto 20px auto;">
+                <h2 style="color: #d4af37;">إدارة المكاتب والأعضاء</h2>
+                <button class="btn-submit" style="width:auto; padding:8px 18px;" onclick="showModal('add-office-modal')"><i class="fas fa-plus"></i> إضافة مكتب جديد</button>
+            </div>
+            <div id="offices-container" style="max-width: 850px; margin: 0 auto;"></div>
+        </div>
+    </div>
+
+    <!-- نافذة تحويل المهمة لعضو أو مكتب آخر -->
+    <div id="reassign-task-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="color:#d4af37; margin-bottom:15px;"><i class="fas fa-exchange-alt"></i> تحويل المهمة لعضو أو مكتب آخر</h3>
+            <p id="reassign-task-title" style="color:#ddd; margin-bottom:15px; font-weight:bold;"></p>
+            <div class="input-group">
+                <label style="color:#d4af37; display:block; margin-bottom:5px;">تحويل إلى:</label>
+                <select id="reassign-target-type" onchange="loadReassignTargetOptions()">
+                    <option value="member">عضو آخر</option>
+                    <option value="office">مكتب / قسم آخر</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label style="color:#d4af37; display:block; margin-bottom:5px;">اختر المستلم الجديد:</label>
+                <select id="reassign-target-value"></select>
+            </div>
+            <button class="btn-submit" id="confirm-reassign-btn" onclick="confirmReassignTask()">تأكيد تحويل المهمة</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('reassign-task-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة تفاصيل القبول والرفض للاجتماع المعلن -->
+    <div id="meeting-responses-modal" class="modal hidden">
+        <div class="modal-content fade-in" style="max-width: 550px;">
+            <h3 id="resp-modal-title" style="color:#d4af37; margin-bottom: 10px; text-align:center;"></h3>
+            <p id="resp-modal-stats" style="text-align:center; color:#ddd; font-size:0.9rem; margin-bottom:15px;"></p>
+            <div id="meeting-responses-list"></div>
+            <button class="btn-submit" style="margin-top:15px; background:#555;" onclick="closeModal('meeting-responses-modal')">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة قائمة إشعارات المديرة (الاجتماعات + المهام والتقارير) -->
+    <div id="notifications-modal" class="modal hidden">
+        <div class="modal-content fade-in" style="max-width: 560px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="color:#d4af37;"><i class="fas fa-bell"></i> مركز إشعارات الإدارة</h3>
+                <button class="btn-danger" style="padding:4px 10px; font-size:0.8rem;" onclick="clearNotifications()">مسح الكل</button>
+            </div>
+            <div id="notifications-list"></div>
+            <button class="btn-submit" style="margin-top:15px; background:#555;" onclick="closeModal('notifications-modal')">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة إشعارات العضو -->
+    <div id="member-notifications-modal" class="modal hidden">
+        <div class="modal-content fade-in" style="max-width: 500px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="color:#d4af37;"><i class="fas fa-bell"></i> إشعاراتي</h3>
+                <button class="btn-danger" style="padding:4px 10px; font-size:0.8rem;" onclick="clearMemberNotifications()">مسح الكل</button>
+            </div>
+            <div id="member-notifications-list"></div>
+            <button class="btn-submit" style="margin-top:15px; background:#555;" onclick="closeModal('member-notifications-modal')">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة مكتب جديد -->
+    <div id="add-office-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="margin-bottom: 15px; color:#d4af37;">إضافة مكتب جديد</h3>
+            <div class="input-group"><input type="text" id="office-name" placeholder="اسم المكتب"></div>
+            <button class="btn-submit" onclick="saveOfficeToDB()">حفظ بقاعدة البيانات</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('add-office-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة (+) لإضافة أعضاء إلى مكتب محدد -->
+    <div id="assign-office-member-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="margin-bottom: 15px; color:#d4af37;"><i class="fas fa-user-plus"></i> إضافة عضو إلى مكتب: <span id="target-office-title" style="color:#fff;"></span></h3>
+            <div class="input-group">
+                <label style="color:#d4af37; font-size:0.9rem; display:block; margin-bottom:5px;">اختر العضو</label>
+                <select id="assign-member-select"></select>
+            </div>
+            <div class="input-group">
+                <label style="color:#d4af37; font-size:0.9rem; display:block; margin-bottom:5px;">حدد الرتبة في المكتب</label>
+                <select id="assign-member-rank">
+                    <option value="عضو مكتب">عضو مكتب</option>
+                    <option value="نائب مشرف">نائب مشرف</option>
+                    <option value="مشرف مكتب">مشرف مكتب</option>
+                </select>
+            </div>
+            <button class="btn-submit" id="confirm-assign-btn" onclick="confirmAssignMemberToOffice()">إضافة للمكتب</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('assign-office-member-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- قائمة اختيار الرتبة المنبثقة -->
+    <div id="rank-select-modal" class="modal hidden">
+        <div class="modal-content fade-in" style="max-width: 350px; text-align: center;">
+            <h3 style="margin-bottom: 10px; color:#d4af37;"><i class="fas fa-award"></i> تحديد رتبة العضو</h3>
+            <p id="rank-modal-member-name" style="margin-bottom: 20px; color:#ddd; font-weight:bold;"></p>
+            <button class="rank-option-btn" id="rank-btn-supervisor" onclick="applySelectedRank('مشرف مكتب')"><span>مشرف مكتب</span> <i class="fas fa-crown"></i></button>
+            <button class="rank-option-btn" id="rank-btn-deputy" onclick="applySelectedRank('نائب مشرف')"><span>نائب مشرف</span> <i class="fas fa-star"></i></button>
+            <button class="rank-option-btn" id="rank-btn-member" onclick="applySelectedRank('عضو مكتب')"><span>عضو مكتب</span> <i class="fas fa-user"></i></button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('rank-select-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة الملف الشخصي الكامل للعضو والترقية -->
+    <div id="edit-member-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <div style="text-align:center; margin-bottom:15px;">
+                <img id="edit-preview-img" src="325152.jpg" style="width:90px; height:90px; border-radius:50%; border:3px solid #d4af37; object-fit:cover;">
+                <h3 style="color:#d4af37; margin-top:8px;"><i class="fas fa-id-card"></i> الملف الشخصي والترقية</h3>
+            </div>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">الاسم الثلاثي</label>
+            <div class="input-group"><input type="text" id="edit-name" placeholder="الاسم الثلاثي"></div>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">اسم المستخدم (للدخول)</label>
+            <div class="input-group"><input type="text" id="edit-username" placeholder="اسم المستخدم"></div>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">كلمة السر</label>
+            <div class="input-group"><input type="text" id="edit-password" placeholder="كلمة السر"></div>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">رقم الموبايل</label>
+            <div class="input-group"><input type="text" id="edit-phone" placeholder="رقم الموبايل"></div>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">نوع العضوية</label>
+            <div class="input-group">
+                <select id="edit-role"><option value="عضو عام">عضو عام</option><option value="عضو مكتب">عضو مكتب</option></select>
+            </div>
+            <hr style="border-color: rgba(212, 175, 55, 0.3); margin: 15px 0;">
+            <h4 style="color:#d4af37; margin-bottom: 10px; text-align:center;">إدارة المكتب والترقية</h4>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">المكتب التابع له</label>
+            <div class="input-group"><select id="edit-office"></select></div>
+            <label style="color:#d4af37; font-size:0.9rem; text-align:right; display:block;">الرتبة في المكتب</label>
+            <div class="input-group">
+                <select id="edit-office-rank">
+                    <option value="عضو مكتب">عضو مكتب</option>
+                    <option value="نائب مشرف">نائب مشرف</option>
+                    <option value="مشرف مكتب">مشرف مكتب</option>
+                </select>
+            </div>
+            <button class="btn-submit" id="update-member-btn" onclick="updateMemberInDB()">حفظ التعديلات والترقية</button>
+            <button class="btn-submit" style="margin-top:10px; background:#ff4d4d;" onclick="deleteMember()">حذف حساب العضو نهائياً</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('edit-member-modal')">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- ================= لوحة العضو ================= -->
+    <div id="member-sidebar" class="sidebar">
+        <i class="fas fa-times close-sidebar" onclick="toggleSidebar('member-sidebar')"></i>
+        <h3 style="text-align: center; color: #d4af37; margin-bottom: 20px;">القائمة الخاصة</h3>
+        <a href="#" onclick="showSection('member-home', 'member')"><i class="fas fa-home"></i> الرئيسية</a>
+        <a href="#" onclick="openMemberTasks()"><i class="fas fa-tasks"></i> المهام</a>
+        <a href="#" onclick="openMemberMeetings()"><i class="fas fa-users"></i> الاجتماع</a>
+        <a href="#" onclick="openSettings()"><i class="fas fa-cog"></i> إعدادات الحساب</a>
+        <a href="#" onclick="logout()" style="color: #ff4d4d;"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</a>
+    </div>
+
+    <div id="member-dashboard" class="dashboard-layout hidden fade-in">
+        <div class="dash-header">
+            <div style="display:flex; align-items:center; gap:20px;">
+                <i class="fas fa-bars" style="font-size: 1.5rem; cursor: pointer;" onclick="toggleSidebar('member-sidebar')"></i>
+                <!-- جرس إشعارات العضو -->
+                <div class="notif-bell" onclick="openMemberNotificationsModal()" title="إشعاراتي">
+                    <i class="fas fa-bell"></i>
+                    <span id="member-notif-badge" class="notif-badge hidden">0</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="text-align: right;">
+                    <div style="margin-bottom:5px;"><button class="notify-enable-btn" onclick="enableBrowserNotifications()"><i class="fas fa-bell"></i> تفعيل التنبيهات</button></div><div id="member-display-name" style="font-weight: bold; font-size: 1.2rem;"></div>
+                    <div id="member-display-type" style="color: #d4af37; font-size: 0.9rem;"></div>
+                    <div id="member-display-office" style="font-size: 0.85rem; color: #fff; background: rgba(212,175,55,0.25); padding: 2px 8px; border-radius: 8px; margin-top: 3px; display: inline-block;"></div>
+                </div>
+                <img id="member-profile-img" src="325152.jpg" alt="Member" class="member-img-display">
+            </div>
+        </div>
+
+        <!-- شريط الخبر العاجل بوجود اجتماع (مع زر إخفاء واختفاء تلقائي بعد 10 ثواني) -->
+        <div id="member-breaking-banner" class="breaking-news-banner hidden" onclick="openMemberMeetings()">
+            <span class="breaking-tag"><i class="fas fa-bullhorn"></i> خبر عاجل</span>
+            <div class="breaking-text" id="member-breaking-text">يوجد اجتماع هام معلن لك! اضغط هنا لعرض التفاصيل وتأكيد الحضور.</div>
+            <button class="close-breaking-btn" onclick="event.stopPropagation(); hideBreakingBanner();">إخفاء ✖</button>
+        </div>
+        
+        <div id="member-home" class="dash-section">
+            <div class="grid-cards" style="max-width: 600px; margin: 0 auto;">
+                <div class="card" onclick="openMemberTasks()">
+                    <span id="member-task-badge" class="notif-badge hidden" style="top:10px; right:10px;">0</span>
+                    <i class="fas fa-tasks"></i>
+                    <h3>المهام</h3>
+                </div>
+                <div class="card" onclick="openMemberMeetings()">
+                    <span id="member-meet-badge" class="notif-badge hidden" style="top:10px; right:10px;">!</span>
+                    <i class="fas fa-users"></i>
+                    <h3>الاجتماع</h3>
+                </div>
+                <div class="card" onclick="openSettings()"><i class="fas fa-cog"></i><h3>إعدادات الحساب</h3></div>
+            </div>
+        </div>
+
+        <!-- صفحة المهام الخاصة بالعضو -->
+        <div id="member-tasks-section" class="dash-section hidden fade-in">
+            <div style="max-width: 750px; margin: 0 auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="color:#d4af37;"><i class="fas fa-tasks"></i> المهام الموكلة إليك</h2>
+                    <button class="btn-submit" style="width:auto; padding:6px 15px; font-size:0.9rem;" onclick="showSection('member-home', 'member')">عودة للرئيسية</button>
+                </div>
+                <div id="member-tasks-list"></div>
+            </div>
+        </div>
+
+        <!-- صفحة الاجتماعات الخاصة بالعضو -->
+        <div id="member-meetings-section" class="dash-section hidden fade-in">
+            <div style="max-width: 700px; margin: 0 auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="color:#d4af37;"><i class="fas fa-calendar-check"></i> قائمة الاجتماعات</h2>
+                    <button class="btn-submit" style="width:auto; padding:6px 15px; font-size:0.9rem;" onclick="showSection('member-home', 'member')">عودة للرئيسية</button>
+                </div>
+                <div id="member-meetings-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة ترك رسالة عند رفض الاجتماع للعضو -->
+    <div id="reject-meeting-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="color:#ff4d4d; margin-bottom:10px;"><i class="fas fa-times-circle"></i> اعتذار عن حضور الاجتماع</h3>
+            <p style="font-size:0.9rem; color:#ddd; margin-bottom:15px;">الرجاء كتابة سبب الرفض / الاعتذار ليتم إرساله إلى المديرة:</p>
+            <div class="input-group">
+                <textarea id="reject-reason-input" rows="4" placeholder="اكتب سبب عدم القدرة على الحضور هنا..."></textarea>
+            </div>
+            <button class="btn-submit" id="confirm-reject-btn" style="background:#dc3545;" onclick="confirmRejectMeeting()">تأكيد الرفض وإرسال الرسالة</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('reject-meeting-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة رفض المهمة مع ذكر السبب للعضو -->
+    <div id="reject-task-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="color:#ff4d4d; margin-bottom:10px;"><i class="fas fa-times-circle"></i> رفض المهمة</h3>
+            <p style="font-size:0.9rem; color:#ddd; margin-bottom:15px;">الرجاء كتابة سبب رفض المهمة ليصل إشعار للشخص الذي أرسلها لك:</p>
+            <div class="input-group">
+                <textarea id="reject-task-reason-input" rows="4" placeholder="اكتب سبب الرفض هنا..."></textarea>
+            </div>
+            <button class="btn-submit" id="confirm-reject-task-btn" style="background:#dc3545;" onclick="confirmRejectTask()">تأكيد الرفض وإرسال الإشعار</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('reject-task-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة كتابة وإرسال التقرير المصور للمهمة (من قِبل العضو) -->
+    <div id="submit-report-modal" class="modal hidden">
+        <div class="modal-content fade-in">
+            <h3 style="color:#d4af37; margin-bottom:10px;"><i class="fas fa-file-alt"></i> إرسال تقرير المهمة</h3>
+            <p id="report-modal-task-title" style="font-size:0.95rem; color:#fff; font-weight:bold; margin-bottom:15px;"></p>
+            <div class="input-group">
+                <label style="color:#d4af37; display:block; margin-bottom:5px;">نص التقرير وتفاصيل الإنجاز:</label>
+                <textarea id="task-report-text" rows="4" placeholder="اكتب التقرير المفصل حول إنجاز المهمة هنا..."></textarea>
+            </div>
+            <div class="input-group">
+                <label style="color:#d4af37; display:block; margin-bottom:5px;">إرفاق صور بالتقرير (اختياري - يمكنك اختيار صورة أو أكثر):</label>
+                <input type="file" id="task-report-images" accept="image/*" multiple style="background:transparent;">
+            </div>
+            <button class="btn-submit" id="send-report-btn" onclick="submitTaskReportToManager()">إرسال التقرير الآن 📤</button>
+            <button class="btn-submit" style="margin-top:10px; background:#555;" onclick="closeModal('submit-report-modal')">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- ================= سكربت التطبيق (Firebase) ================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyA7K21Lgou05b2wrmBCKjKdhRVMWFywwJE", authDomain: "team-etihad.firebaseapp.com", projectId: "team-etihad", storageBucket: "team-etihad.firebasestorage.app", messagingSenderId: "629287755135", appId: "1:629287755135:web:aedd2cc308786b554b4e4a", measurementId: "G-0XLCN2GFW0" };
+        const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+
+        window.currentUserId = null; window.currentUserPass = null; window.currentDashboard = null;
+        window.currentEditingUser = null; window.targetOfficeForAssign = null; window.targetUserForRank = null;
+        window.pendingRejectMeetingId = null; window.pendingRejectMeetingTitle = null;
+        window.pendingRejectTaskId = null; window.pendingReportTaskId = null; window.pendingReassignTaskId = null;
+        window.breakingBannerTimeout = null;
+        let stopLiveNotifications = null;
+        let managerFirstSnapshot = true, memberFirstSnapshot = true;
+
+        window.enableBrowserNotifications = async function() {
+            if (!("Notification" in window)) return alert("هذا المتصفح لا يدعم إشعارات النظام.");
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') { alert('تم تفعيل إشعارات المتصفح. ستظهر الإشعارات أثناء فتح التطبيق.'); }
+            else alert('لم يتم السماح بالإشعارات. فعّلها من إعدادات المتصفح أو التطبيق.');
+        };
+
+        function showSystemNotification(title, body) {
+            if (document.visibilityState === 'visible' || !("Notification" in window) || Notification.permission !== 'granted') return;
+            try { new Notification(title, { body, icon: '325152.jpg', tag: 'etihad-' + Date.now() }); } catch(e) {}
+        }
+
+        function startLiveNotifications(role) {
+            if (stopLiveNotifications) stopLiveNotifications();
+            managerFirstSnapshot = true; memberFirstSnapshot = true;
+            if (role === 'manager') {
+                stopLiveNotifications = onSnapshot(collection(db, 'notifications'), (snap) => {
+                    const badge = document.getElementById('manager-notif-badge');
+                    if (snap.size) { badge.textContent = snap.size; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+                    if (!managerFirstSnapshot) snap.docChanges().filter(c => c.type === 'added').forEach(c => { const n = c.doc.data(); showSystemNotification('إشعار جديد من الفريق', n.taskTitle || n.meetingTitle || n.message || 'وصل تحديث جديد إلى مركز الإشعارات'); });
+                    managerFirstSnapshot = false;
+                    if (!document.getElementById('notifications-modal').classList.contains('hidden')) window.openNotificationsModal();
+                }, err => console.error('Live manager notifications:', err));
+            } else {
+                const username = window.currentUserId;
+                stopLiveNotifications = onSnapshot(query(collection(db, 'member_notifications'), where('targetUsername', '==', username)), (snap) => {
+                    const badge = document.getElementById('member-notif-badge');
+                    if (snap.size) { badge.textContent = snap.size; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+                    if (!memberFirstSnapshot) snap.docChanges().filter(c => c.type === 'added').forEach(c => { const n = c.doc.data(); showSystemNotification('إشعار جديد', n.message || n.taskTitle || 'لديك تحديث جديد في التطبيق'); });
+                    memberFirstSnapshot = false;
+                    if (!document.getElementById('member-notifications-modal').classList.contains('hidden')) window.openMemberNotificationsModal();
+                }, err => console.error('Live member notifications:', err));
+            }
+        }
+
+        const RANKS_ORDER = ['عضو مكتب', 'نائب مشرف', 'مشرف مكتب'];
+
+        window.hideAll = function() { document.querySelectorAll('#splash-screen, #login-screen, #owner-dashboard, #manager-dashboard, #member-dashboard').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('active')); };
+        
+        const video = document.getElementById('intro-video');
+        if(video) {
+            video.onended = () => { checkRememberedLogin(); };
+            setTimeout(() => { if(!video.paused) return; checkRememberedLogin(); }, 5000);
+        }
+
+        function checkRememberedLogin() {
+            const savedUser = localStorage.getItem('etihad_user');
+            const savedPass = localStorage.getItem('etihad_pass');
+            if(savedUser && savedPass) {
+                document.getElementById('username').value = savedUser;
+                document.getElementById('password').value = savedPass;
+                document.getElementById('rememberMe').checked = true;
+                window.login();
+            } else {
+                window.hideAll();
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+        }
+
+        window.toggleSidebar = (id) => { const sb = document.getElementById(id); document.querySelectorAll('.sidebar').forEach(el => { if(el.id !== id) el.classList.remove('active'); }); sb.classList.toggle('active'); };
+        window.showModal = (id) => document.getElementById(id).classList.remove('hidden'); window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+        window.showSection = function(sectionId, dashboard) { document.querySelectorAll('.dash-section').forEach(sec => sec.classList.add('hidden')); document.getElementById(sectionId).classList.remove('hidden'); if(dashboard) document.getElementById(dashboard + '-sidebar').classList.remove('active'); };
+        window.showWelcomeMessage = function(text, targetDashboard) { window.hideAll(); window.currentDashboard = targetDashboard; const overlay = document.getElementById('welcome-overlay'); document.getElementById('welcome-text').innerText = text; overlay.classList.remove('hidden'); setTimeout(() => { overlay.classList.add('hidden'); document.getElementById(targetDashboard).classList.remove('hidden'); }, 2000); };
+        
+        window.viewFullImage = function(src) {
+            document.getElementById('full-size-image').src = src;
+            showModal('image-viewer-modal');
+        };
+
+        window.hideBreakingBanner = function() {
+            const banner = document.getElementById('member-breaking-banner');
+            if(banner) banner.classList.add('hidden');
+            if(window.breakingBannerTimeout) clearTimeout(window.breakingBannerTimeout);
+        };
+
+        window.logout = function() {
+            localStorage.removeItem('etihad_user');
+            localStorage.removeItem('etihad_pass');
+            if (stopLiveNotifications) { stopLiveNotifications(); stopLiveNotifications = null; }
+            window.currentUserId = null; window.currentUserPass = null;
+            document.getElementById('username').value = ''; document.getElementById('password').value = '';
+            window.hideAll(); document.getElementById('login-screen').classList.remove('hidden');
+        };
+
+        // --- تسجيل الدخول ---
+        window.login = async function() {
+            const user = document.getElementById('username').value.trim(), pass = document.getElementById('password').value, loginBtn = document.getElementById('login-btn');
+            const remember = document.getElementById('rememberMe').checked;
+            if(!user || !pass) return alert("الرجاء إدخال اسم المستخدم وكلمة المرور");
+            
+            if(user === 'admin' && pass === '1234') {
+                if(remember) { localStorage.setItem('etihad_user', user); localStorage.setItem('etihad_pass', pass); }
+                window.currentUserId = 'admin'; window.currentUserPass = '1234';
+                startLiveNotifications('manager');
+                return window.showWelcomeMessage("مرحباً بك أيها المالك 👑", 'owner-dashboard');
+            }
+            try {
+                loginBtn.innerText = "جاري التحقق..."; const docSnap = await getDoc(doc(db, "users", user));
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    if(userData.pass === pass) {
+                        if(remember) { localStorage.setItem('etihad_user', user); localStorage.setItem('etihad_pass', pass); }
+                        window.currentUserId = user; window.currentUserPass = pass; window.currentUserData = userData;
+                        if(userData.role === 'مديرة' || userData.role === 'نائب مدير') {
+                            loadManagerNotificationsBadge();
+                            startLiveNotifications('manager');
+                            window.showWelcomeMessage("مرحباً مديرتنا 🌹", 'manager-dashboard');
+                        } else {
+                            startLiveNotifications('member');
+                            document.getElementById('member-display-name').innerText = userData.name;
+                            document.getElementById('member-display-type').innerText = userData.role;
+                            const officeBadge = document.getElementById('member-display-office');
+                            if(userData.office) {
+                                officeBadge.innerText = `${userData.office} - ${userData.officeRank || 'عضو مكتب'}`;
+                                officeBadge.style.display = 'inline-block';
+                            } else {
+                                officeBadge.style.display = 'none';
+                            }
+                            document.getElementById('member-profile-img').src = userData.image || '325152.jpg';
+                            checkMemberUrgentMeetings();
+                            checkMemberTasksAndNotificationsBadge();
+                            window.showWelcomeMessage("مرحباً " + userData.name, 'member-dashboard');
+                        }
+                    } else { alert("كلمة المرور غير صحيحة"); }
+                } else { alert("عذراً، هذا الحساب غير موجود! لا يمكن تسجيل الدخول إلا للأعضاء الذين تمت إضافتهم مسبقاً من قبل المديرة."); }
+            } catch (error) { alert("خطأ: " + error.message); } finally { loginBtn.innerText = "دخول"; }
+        };
+
+        // ==========================================================
+        // --- نظام المهام المتكامل (إسناد، مراقبة، تقارير، تحويل) ---
+        // ==========================================================
+
+        window.openManagerTasksSection = function() {
+            showSection('tasks-section', 'manager');
+            document.getElementById('dynamic-tasks-inputs').innerHTML = `
+                <div class="task-input-box">
+                    <div class="input-group">
+                        <label style="color:#d4af37; display:block; margin-bottom:5px;">عنوان المهمة (1)</label>
+                        <input type="text" class="task-title-input" placeholder="مثال: تجهيز التقرير الأسبوعي">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="color:#d4af37; display:block; margin-bottom:5px;">تفاصيل المهمة</label>
+                        <textarea class="task-desc-input" rows="2" placeholder="اكتب شرح وتفاصيل المهمة هنا..."></textarea>
+                    </div>
+                </div>`;
+            loadTaskTargetOptions();
+        };
+
+        window.addAnotherTaskInputBox = function() {
+            const container = document.getElementById('dynamic-tasks-inputs');
+            const count = container.querySelectorAll('.task-input-box').length + 1;
+            const div = document.createElement('div');
+            div.className = 'task-input-box fade-in';
+            div.innerHTML = `
+                <i class="fas fa-times" style="position:absolute; top:10px; left:10px; color:#ff4d4d; cursor:pointer;" onclick="this.parentElement.remove()"></i>
+                <div class="input-group">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;">عنوان المهمة (${count})</label>
+                    <input type="text" class="task-title-input" placeholder="عنوان المهمة">
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label style="color:#d4af37; display:block; margin-bottom:5px;">تفاصيل المهمة</label>
+                    <textarea class="task-desc-input" rows="2" placeholder="تفاصيل المهمة..."></textarea>
+                </div>`;
+            container.appendChild(div);
+        };
+
+        window.loadTaskTargetOptions = async function() {
+            const type = document.getElementById('task-target-type').value;
+            const group = document.getElementById('task-target-select-group');
+            const select = document.getElementById('task-target-value');
+            const label = document.getElementById('task-target-label');
+
+            if(type === 'all') {
+                group.classList.add('hidden');
+                return;
+            }
+            group.classList.remove('hidden');
+            select.innerHTML = '<option value="">جاري التحميل...</option>';
+
+            try {
+                if(type === 'member') {
+                    label.innerText = 'اختر العضو:';
+                    const qs = await getDocs(collection(db, "users"));
+                    let html = '<option value="">-- اختر العضو --</option>';
+                    qs.forEach(d => {
+                        const u = d.data();
+                        if(u.role === 'مديرة' || u.role === 'نائب مدير') return;
+                        html += `<option value="${u.username}">${u.name} (${u.office || 'عضو عام'})</option>`;
+                    });
+                    select.innerHTML = html;
+                } else if(type === 'office') {
+                    label.innerText = 'اختر المكتب / القسم:';
+                    const qs = await getDocs(collection(db, "offices"));
+                    let html = '<option value="">-- اختر المكتب --</option>';
+                    qs.forEach(d => {
+                        html += `<option value="${d.id}">${d.id}</option>`;
+                    });
+                    select.innerHTML = html;
+                }
+            } catch(e) {}
+        };
+
+        // حفظ وإرسال المهام للأعضاء أو المكاتب
+        window.submitAssignedTasks = async function() {
+            const targetType = document.getElementById('task-target-type').value;
+            const targetValue = document.getElementById('task-target-value').value;
+            const boxes = document.querySelectorAll('#dynamic-tasks-inputs .task-input-box');
+            const btn = document.getElementById('assign-tasks-btn');
+
+            if(targetType !== 'all' && !targetValue) return alert("الرجاء تحديد المستلم (العضو أو المكتب)!");
+
+            const tasksToCreate = [];
+            boxes.forEach(box => {
+                const title = box.querySelector('.task-title-input').value.trim();
+                const desc = box.querySelector('.task-desc-input').value.trim();
+                if(title) tasksToCreate.push({ title, desc });
+            });
+
+            if(tasksToCreate.length === 0) return alert("الرجاء كتابة عنوان مهمة واحدة على الأقل!");
+
+            btn.innerText = "جاري إرسال وتوزيع المهام ⏳...";
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                let targetMembers = [];
+
+                usersSnap.forEach(docSnap => {
+                    const u = docSnap.data();
+                    if(u.role === 'مديرة' || u.role === 'نائب مدير') return;
+                    if(targetType === 'member' && u.username === targetValue) targetMembers.push(u);
+                    else if(targetType === 'office' && u.office === targetValue) targetMembers.push(u);
+                    else if(targetType === 'all') targetMembers.push(u);
+                });
+
+                if(targetMembers.length === 0) {
+                    btn.innerText = "إرسال وتوكيل المهام 🚀";
+                    return alert("لا يوجد أعضاء مسجلين ضمن هذه الجهة حالياً لإسناد المهام لهم!");
+                }
+
+                const senderName = (window.currentUserData && window.currentUserData.name) ? window.currentUserData.name : 'المديرة';
+                const senderUser = window.currentUserId || 'manager';
+
+                for(const member of targetMembers) {
+                    for(const t of tasksToCreate) {
+                        const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                        await setDoc(doc(db, "tasks", taskId), {
+                            id: taskId,
+                            title: t.title,
+                            description: t.desc,
+                            memberUsername: member.username,
+                            memberName: member.name,
+                            memberImage: member.image || '325152.jpg',
+                            memberOffice: member.office || 'عضو عام',
+                            assignedBy: senderUser,
+                            assignedByName: senderName,
+                            status: 'pending', // pending, accepted, rejected, completed, report_requested, report_submitted, approved
+                            rejectReason: '',
+                            reportText: '',
+                            reportImages: [],
+                            createdAt: new Date().toISOString()
+                        });
+
+                        // إرسال إشعار للعضو بوجود مهمة جديدة
+                        const memNotifId = `mnotif_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                        await setDoc(doc(db, "member_notifications", memNotifId), {
+                            id: memNotifId,
+                            targetUsername: member.username,
+                            title: "مهمة جديدة موكلة إليك 📋",
+                            message: `تم تكليفك بمهمة "${t.title}" من قِبل (${senderName}). ادخل إلى قائمة المهام للقبول أو الرفض.`,
+                            taskId: taskId,
+                            type: 'new_task',
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+                }
+
+                alert(`تم إسناد (${tasksToCreate.length}) مهمة بنجاح إلى (${targetMembers.length}) عضو ✔️`);
+                openMonitorTasksSection();
+            } catch(e) {
+                alert("حدث خطأ أثناء إرسال المهام: " + e.message);
+            } finally {
+                btn.innerText = "إرسال وتوكيل المهام 🚀";
+            }
+        };
+
+        // ترجمة حالة المهمة إلى شارة ملونة
+        function getTaskStatusBadge(status) {
+            switch(status) {
+                case 'pending': return `<span class="status-badge status-pending">قيد الانتظار ⏳</span>`;
+                case 'accepted': return `<span class="status-badge status-accepted">تم القبول (قيد التنفيذ) 👍</span>`;
+                case 'rejected': return `<span class="status-badge status-rejected">مرفوضة ❌</span>`;
+                case 'completed': return `<span class="status-badge status-completed">اكتملت (بانتظار مراجعتك) 🔔</span>`;
+                case 'report_requested': return `<span class="status-badge status-report_requested">بانتظار إرسال التقرير 📄</span>`;
+                case 'report_submitted': return `<span class="status-badge status-report_submitted">تم استلام التقرير المصور 📑</span>`;
+                case 'approved': return `<span class="status-badge status-approved">تم الإنجاز والاعتماد ✔️</span>`;
+                default: return `<span class="status-badge status-pending">${status}</span>`;
+            }
+        }
+
+        // فتح واجهة مراقبة المهام للمديرة
+        window.openMonitorTasksSection = async function() {
+            showSection('monitor-tasks-section', 'manager');
+            const list = document.getElementById('monitor-tasks-list');
+            list.innerHTML = '<h3 style="text-align:center;">جاري تحميل تفاصيل مهام الأعضاء ⏳...</h3>';
+
+            try {
+                const qs = await getDocs(collection(db, "tasks"));
+                const allTasks = [];
+                qs.forEach(d => allTasks.push(d.data()));
+                allTasks.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+                let html = '';
+                allTasks.forEach(t => {
+                    const rejectBox = (t.status === 'rejected' && t.rejectReason)
+                        ? `<div style="margin-top:10px; background:rgba(220,53,69,0.2); border:1px solid #dc3545; padding:10px; border-radius:10px; color:#ffcccc; font-size:0.9rem;">
+                             <strong><i class="fas fa-exclamation-circle"></i> سبب رفض المهمة:</strong> ${t.rejectReason}
+                           </div>` : '';
+
+                    let reportBox = '';
+                    if(t.reportText || (t.reportImages && t.reportImages.length > 0)) {
+                        let imgsHtml = '';
+                        if(t.reportImages && t.reportImages.length > 0) {
+                            imgsHtml = `<div class="report-images-grid">` + 
+                                t.reportImages.map(src => `<img src="${src}" onclick="viewFullImage('${src}')" title="اضغط للتكبير">`).join('') + 
+                                `</div>`;
+                        }
+                        reportBox = `
+                        <div style="margin-top:12px; background:rgba(111,66,193,0.25); border:1px solid #d4af37; padding:12px; border-radius:12px;">
+                            <strong style="color:#d4af37;"><i class="fas fa-file-invoice"></i> التقرير المرسل من العضو:</strong>
+                            <p style="margin-top:5px; color:#fff; font-size:0.95rem; white-space:pre-wrap;">${t.reportText || 'تقرير مرفق بالصور'}</p>
+                            ${imgsHtml}
+                        </div>`;
+                    }
+
+                    // أزرار الاعتماد (تم) أو (إرسال تقرير) عندما يكمل العضو المهمة أو يرسل التقرير
+                    let managerReviewActions = '';
+                    if(t.status === 'completed' || t.status === 'report_submitted') {
+                        managerReviewActions = `
+                        <div style="display:flex; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.15); flex-wrap:wrap;">
+                            <button class="btn-action" style="background:#28a745; flex:1; justify-content:center; padding:10px;" onclick="managerApproveTask('${t.id}')">
+                                <i class="fas fa-check-double"></i> تم (اعتماد الإنجاز)
+                            </button>
+                            ${t.status === 'completed' ? `
+                            <button class="btn-action" style="background:#fd7e14; flex:1; justify-content:center; padding:10px;" onclick="managerRequestReport('${t.id}')">
+                                <i class="fas fa-file-signature"></i> إرسال تقرير (طلب تقرير من العضو)
+                            </button>` : ''}
+                        </div>`;
+                    }
+
+                    html += `
+                    <div class="task-card fade-in">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <img src="${t.memberImage || '325152.jpg'}" style="width:55px; height:55px; border-radius:50%; border:2px solid #d4af37; object-fit:cover;">
+                                <div>
+                                    <h3 style="color:#d4af37; font-size:1.15rem;">${t.title}</h3>
+                                    <div style="font-size:0.9rem; color:#ddd;">العضو المكلف: <strong style="color:#fff;">${t.memberName}</strong> (${t.memberOffice})</div>
+                                </div>
+                            </div>
+                            <div>${getTaskStatusBadge(t.status)}</div>
+                        </div>
+
+                        <p style="margin-top:10px; color:#eee; font-size:0.95rem; background:rgba(255,255,255,0.06); padding:10px; border-radius:8px;">
+                            ${t.description || 'لا توجد تفاصيل إضافية.'}
+                        </p>
+
+                        ${rejectBox}
+                        ${reportBox}
+                        ${managerReviewActions}
+
+                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1); flex-wrap:wrap;">
+                            <button class="btn-action" style="background:#17a2b8;" onclick="openReassignTaskModal('${t.id}', '${t.title}')">
+                                <i class="fas fa-exchange-alt"></i> تحويل لعضو / مكتب آخر
+                            </button>
+                            <button class="btn-action" style="background:#dc3545;" onclick="deleteTaskFromDB('${t.id}')">
+                                <i class="fas fa-trash"></i> إزالة المهمة
+                            </button>
+                        </div>
+                    </div>`;
+                });
+
+                list.innerHTML = html || '<div class="glass-panel" style="margin:0 auto;"><p>لا توجد مهام مسندة حالياً.</p></div>';
+            } catch(e) {
+                list.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ أثناء تحميل المهام</p>';
+            }
+        };
+
+        // حذف/إزالة المهمة عن العضو
+        window.deleteTaskFromDB = async function(taskId) {
+            if(!confirm("هل أنت متأكد من إزالة وحذف هذه المهمة عن العضو؟")) return;
+            try {
+                await deleteDoc(doc(db, "tasks", taskId));
+                openMonitorTasksSection();
+            } catch(e) { alert("فشل الحذف"); }
+        };
+
+        // فتح نافذة تحويل المهمة لعضو أو مكتب آخر
+        window.openReassignTaskModal = function(taskId, taskTitle) {
+            window.pendingReassignTaskId = taskId;
+            document.getElementById('reassign-task-title').innerText = `المهمة: ${taskTitle}`;
+            showModal('reassign-task-modal');
+            loadReassignTargetOptions();
+        };
+
+        window.loadReassignTargetOptions = async function() {
+            const type = document.getElementById('reassign-target-type').value;
+            const select = document.getElementById('reassign-target-value');
+            select.innerHTML = '<option value="">جاري التحميل...</option>';
+            try {
+                if(type === 'member') {
+                    const qs = await getDocs(collection(db, "users"));
+                    let html = '<option value="">-- اختر العضو الجديد --</option>';
+                    qs.forEach(d => {
+                        const u = d.data();
+                        if(u.role === 'مديرة' || u.role === 'نائب مدير') return;
+                        html += `<option value="${u.username}">${u.name} (${u.office || 'عضو عام'})</option>`;
+                    });
+                    select.innerHTML = html;
+                } else {
+                    const qs = await getDocs(collection(db, "offices"));
+                    let html = '<option value="">-- اختر المكتب الجديد --</option>';
+                    qs.forEach(d => { html += `<option value="${d.id}">${d.id}</option>`; });
+                    select.innerHTML = html;
+                }
+            } catch(e) {}
+        };
+
+        window.confirmReassignTask = async function() {
+            const taskId = window.pendingReassignTaskId;
+            const targetType = document.getElementById('reassign-target-type').value;
+            const targetVal = document.getElementById('reassign-target-value').value;
+            const btn = document.getElementById('confirm-reassign-btn');
+
+            if(!targetVal) return alert("الرجاء اختيار الجهة الجديدة!");
+            btn.innerText = "جاري التحويل...";
+
+            try {
+                const taskSnap = await getDoc(doc(db, "tasks", taskId));
+                if(!taskSnap.exists()) return;
+                const oldTask = taskSnap.data();
+
+                if(targetType === 'member') {
+                    const uSnap = await getDoc(doc(db, "users", targetVal));
+                    if(!uSnap.exists()) return;
+                    const u = uSnap.data();
+
+                    await setDoc(doc(db, "tasks", taskId), {
+                        memberUsername: u.username,
+                        memberName: u.name,
+                        memberImage: u.image || '325152.jpg',
+                        memberOffice: u.office || 'عضو عام',
+                        status: 'pending',
+                        rejectReason: '',
+                        reportText: '',
+                        reportImages: [],
+                        createdAt: new Date().toISOString()
+                    }, { merge: true });
+
+                    const memNotifId = `mnotif_${Date.now()}`;
+                    await setDoc(doc(db, "member_notifications", memNotifId), {
+                        id: memNotifId,
+                        targetUsername: u.username,
+                        title: "تم تحويل مهمة إليك 📋",
+                        message: `تم تحويل مهمة "${oldTask.title}" إليك من الإدارة.`,
+                        taskId: taskId,
+                        type: 'new_task',
+                        createdAt: new Date().toISOString()
+                    });
+                } else if(targetType === 'office') {
+                    // تحويل المهمة لكافة أعضاء المكتب المختار وحذف القديمة
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    const officeMembers = [];
+                    usersSnap.forEach(d => {
+                        const u = d.data();
+                        if(u.role !== 'مديرة' && u.role !== 'نائب مدير' && u.office === targetVal) officeMembers.push(u);
+                    });
+
+                    if(officeMembers.length === 0) {
+                        btn.innerText = "تأكيد تحويل المهمة";
+                        return alert("هذا المكتب لا يحتوي على أعضاء حالياً!");
+                    }
+
+                    await deleteDoc(doc(db, "tasks", taskId));
+                    for(const member of officeMembers) {
+                        const newTaskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                        await setDoc(doc(db, "tasks", newTaskId), {
+                            ...oldTask,
+                            id: newTaskId,
+                            memberUsername: member.username,
+                            memberName: member.name,
+                            memberImage: member.image || '325152.jpg',
+                            memberOffice: member.office || targetVal,
+                            status: 'pending',
+                            rejectReason: '',
+                            reportText: '',
+                            reportImages: [],
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+                }
+
+                alert("تم تحويل المهمة بنجاح ✔️");
+                closeModal('reassign-task-modal');
+                openMonitorTasksSection();
+            } catch(e) {
+                alert("خطأ أثناء التحويل: " + e.message);
+            } finally {
+                btn.innerText = "تأكيد تحويل المهمة";
+            }
+        };
+
+        // ضغط المديرة على زر (تم) لاعتماد المهمة المكتملة
+        window.managerApproveTask = async function(taskId) {
+            try {
+                const snap = await getDoc(doc(db, "tasks", taskId));
+                if(!snap.exists()) return;
+                const t = snap.data();
+
+                await setDoc(doc(db, "tasks", taskId), { status: 'approved' }, { merge: true });
+
+                const memNotifId = `mnotif_${Date.now()}`;
+                await setDoc(doc(db, "member_notifications", memNotifId), {
+                    id: memNotifId,
+                    targetUsername: t.memberUsername,
+                    title: "تم اعتماد إنجاز المهمة ✔️",
+                    message: `قامت الإدارة باعتماد إتمامك لمهمة "${t.title}". شكراً لجهودك!`,
+                    taskId: taskId,
+                    type: 'task_approved',
+                    createdAt: new Date().toISOString()
+                });
+
+                alert("تم اعتماد إنجاز المهمة بنجاح ✔️");
+                if(!document.getElementById('monitor-tasks-section').classList.contains('hidden')) openMonitorTasksSection();
+                if(!document.getElementById('notifications-modal').classList.contains('hidden')) openNotificationsModal();
+            } catch(e) { alert("خطأ: " + e.message); }
+        };
+
+        // ضغط المديرة على زر (إرسال تقرير) لطلب تقرير من العضو
+        window.managerRequestReport = async function(taskId) {
+            try {
+                const snap = await getDoc(doc(db, "tasks", taskId));
+                if(!snap.exists()) return;
+                const t = snap.data();
+
+                await setDoc(doc(db, "tasks", taskId), { status: 'report_requested' }, { merge: true });
+
+                const memNotifId = `mnotif_${Date.now()}`;
+                await setDoc(doc(db, "member_notifications", memNotifId), {
+                    id: memNotifId,
+                    targetUsername: t.memberUsername,
+                    title: "مطلوب إرسال تقرير للمهمة 📄",
+                    message: `يرجى إرسال تقرير مفصل (قد يتضمن صور) حول إنجازك لمهمة "${t.title}". اضغط هنا لإرسال التقرير.`,
+                    taskId: taskId,
+                    type: 'report_requested',
+                    createdAt: new Date().toISOString()
+                });
+
+                alert("تم إرسال إشعار للعضو ليرسل تقريراً حول المهمة 📄✔️");
+                if(!document.getElementById('monitor-tasks-section').classList.contains('hidden')) openMonitorTasksSection();
+                if(!document.getElementById('notifications-modal').classList.contains('hidden')) openNotificationsModal();
+            } catch(e) { alert("خطأ: " + e.message); }
+        };
+
+        // --- قسم المهام الخاص بالعضو ---
+        async function checkMemberTasksAndNotificationsBadge() {
+            try {
+                const username = window.currentUserId;
+                const tasksSnap = await getDocs(collection(db, "tasks"));
+                let activeTasksCount = 0;
+                tasksSnap.forEach(d => {
+                    const t = d.data();
+                    if(t.memberUsername === username && (t.status === 'pending' || t.status === 'report_requested')) {
+                        activeTasksCount++;
+                    }
+                });
+                const taskBadge = document.getElementById('member-task-badge');
+                if(activeTasksCount > 0) {
+                    taskBadge.innerText = activeTasksCount;
+                    taskBadge.classList.remove('hidden');
+                } else {
+                    taskBadge.classList.add('hidden');
+                }
+
+                const notifSnap = await getDocs(collection(db, "member_notifications"));
+                let myNotifs = 0;
+                notifSnap.forEach(d => {
+                    if(d.data().targetUsername === username) myNotifs++;
+                });
+                const notifBadge = document.getElementById('member-notif-badge');
+                if(myNotifs > 0) {
+                    notifBadge.innerText = myNotifs;
+                    notifBadge.classList.remove('hidden');
+                } else {
+                    notifBadge.classList.add('hidden');
+                }
+            } catch(e) {}
+        }
+
+        window.openMemberNotificationsModal = async function() {
+            showModal('member-notifications-modal');
+            const list = document.getElementById('member-notifications-list');
+            list.innerHTML = '<p style="text-align:center;">جاري جلب الإشعارات...</p>';
+            try {
+                const username = window.currentUserId;
+                const qs = await getDocs(collection(db, "member_notifications"));
+                const notifs = [];
+                qs.forEach(d => {
+                    if(d.data().targetUsername === username) notifs.push(d.data());
+                });
+                notifs.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+                let html = '';
+                notifs.forEach(n => {
+                    const actionBtn = (n.type === 'report_requested')
+                        ? `<button class="btn-submit" style="margin-top:8px; padding:6px 12px; font-size:0.85rem;" onclick="closeModal('member-notifications-modal'); openMemberTasks(); openSubmitReportModal('${n.taskId}', '');">كتابة وإرسال التقرير الآن 📄</button>`
+                        : `<button class="btn-submit" style="margin-top:8px; padding:6px 12px; font-size:0.85rem; background:#17a2b8;" onclick="closeModal('member-notifications-modal'); openMemberTasks();">عرض قائمة المهام</button>`;
+
+                    html += `
+                    <div class="response-item" style="flex-direction:column;">
+                        <strong style="color:#d4af37; font-size:1rem;">${n.title}</strong>
+                        <p style="font-size:0.9rem; color:#eee;">${n.message}</p>
+                        ${actionBtn}
+                    </div>`;
+                });
+                list.innerHTML = html || '<p style="text-align:center; color:#ccc; padding:15px;">لا توجد إشعارات حالياً.</p>';
+            } catch(e) {
+                list.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ</p>';
+            }
+        };
+
+        window.clearMemberNotifications = async function() {
+            try {
+                const username = window.currentUserId;
+                const qs = await getDocs(collection(db, "member_notifications"));
+                for(const d of qs.docs) {
+                    if(d.data().targetUsername === username) {
+                        await deleteDoc(doc(db, "member_notifications", d.id));
+                    }
+                }
+                openMemberNotificationsModal();
+                checkMemberTasksAndNotificationsBadge();
+            } catch(e) {}
+        };
+
+        window.openMemberTasks = async function() {
+            showSection('member-tasks-section', 'member');
+            const list = document.getElementById('member-tasks-list');
+            list.innerHTML = '<p style="text-align:center;">جاري جلب المهام الموكلة إليك...</p>';
+
+            try {
+                const username = window.currentUserId;
+                const qs = await getDocs(collection(db, "tasks"));
+                const myTasks = [];
+                qs.forEach(d => {
+                    if(d.data().memberUsername === username) myTasks.push(d.data());
+                });
+                myTasks.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+                let html = '';
+                myTasks.forEach(t => {
+                    let actionsHtml = '';
+
+                    if(t.status === 'pending') {
+                        actionsHtml = `
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button class="btn-submit" style="background:#28a745; flex:1;" onclick="memberRespondTask('${t.id}', 'accepted')">
+                                <i class="fas fa-check"></i> قبول المهمة
+                            </button>
+                            <button class="btn-submit" style="background:#dc3545; flex:1;" onclick="openRejectTaskModal('${t.id}')">
+                                <i class="fas fa-times"></i> رفض المهمة
+                            </button>
+                        </div>`;
+                    } else if(t.status === 'accepted') {
+                        actionsHtml = `
+                        <div style="margin-top:15px;">
+                            <button class="btn-submit" style="background:linear-gradient(45deg, #007bff, #0056b3);" onclick="memberCompleteTask('${t.id}')">
+                                <i class="fas fa-flag-checkered"></i> اكتملت المهمة ✔️
+                            </button>
+                        </div>`;
+                    } else if(t.status === 'report_requested') {
+                        actionsHtml = `
+                        <div style="margin-top:15px; background:rgba(253,126,20,0.2); border:1px solid #fd7e14; padding:12px; border-radius:12px; text-align:center;">
+                            <p style="color:#fff; font-weight:bold; margin-bottom:10px;"><i class="fas fa-exclamation-triangle" style="color:#d4af37;"></i> طلبت الإدارة إرسال تقرير (قد يتضمن صور) حول هذه المهمة:</p>
+                            <button class="btn-submit" style="background:linear-gradient(45deg, #fd7e14, #e8590c);" onclick="openSubmitReportModal('${t.id}', '${t.title}')">
+                                <i class="fas fa-file-upload"></i> كتابة وإرسال التقرير الآن
+                            </button>
+                        </div>`;
+                    } else if(t.status === 'completed') {
+                        actionsHtml = `<div style="margin-top:12px; color:#80bdff; font-weight:bold; text-align:center;">تم إرسال إشعار اكتمال المهمة للإدارة وبانتظار المراجعة ⏳</div>`;
+                    } else if(t.status === 'report_submitted') {
+                        actionsHtml = `<div style="margin-top:12px; color:#d4af37; font-weight:bold; text-align:center;">تم إرسال التقرير إلى الإدارة بنجاح 📑✔️</div>`;
+                    } else if(t.status === 'approved') {
+                        actionsHtml = `<div style="margin-top:12px; color:#28a745; font-weight:bold; text-align:center;">تم اعتماد إنجاز المهمة من الإدارة بنجاح 🌟✔️</div>`;
+                    } else if(t.status === 'rejected') {
+                        actionsHtml = `<div style="margin-top:12px; color:#ff8080; font-size:0.9rem;">تم رفض المهمة. السبب المرسل: "${t.rejectReason}"</div>`;
+                    }
+
+                    html += `
+                    <div class="task-card fade-in">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <h3 style="color:#d4af37; font-size:1.25rem;"><i class="fas fa-thumbtack"></i> ${t.title}</h3>
+                            ${getTaskStatusBadge(t.status)}
+                        </div>
+                        <div style="font-size:0.85rem; color:#ccc; margin-top:4px;">مرسل المهمة: <strong style="color:#fff;">${t.assignedByName || 'المديرة'}</strong></div>
+                        <p style="margin-top:12px; background:rgba(255,255,255,0.08); padding:12px; border-radius:10px; line-height:1.6;">
+                            ${t.description || 'لا توجد تفاصيل إضافية.'}
+                        </p>
+                        ${actionsHtml}
+                    </div>`;
+                });
+
+                list.innerHTML = html || '<div class="glass-panel" style="margin:0 auto;"><p>لا توجد مهام موكلة إليك حالياً.</p></div>';
+                checkMemberTasksAndNotificationsBadge();
+            } catch(e) {
+                list.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ أثناء جلب المهام</p>';
+            }
+        };
+
+        // قبول أو رفض المهمة من قبل العضو + إرسال إشعار لمرسل المهمة
+        window.memberRespondTask = async function(taskId, status, reason = '') {
+            try {
+                const snap = await getDoc(doc(db, "tasks", taskId));
+                if(!snap.exists()) return;
+                const t = snap.data();
+
+                await setDoc(doc(db, "tasks", taskId), {
+                    status: status,
+                    rejectReason: reason
+                }, { merge: true });
+
+                const notifId = `notif_task_${taskId}_${Date.now()}`;
+                await setDoc(doc(db, "notifications", notifId), {
+                    id: notifId,
+                    type: status === 'accepted' ? 'task_accepted' : 'task_rejected',
+                    taskId: taskId,
+                    taskTitle: t.title,
+                    username: window.currentUserId,
+                    memberName: window.currentUserData.name,
+                    memberImage: window.currentUserData.image || '325152.jpg',
+                    status: status,
+                    reason: reason,
+                    createdAt: new Date().toISOString()
+                });
+
+                alert(status === 'accepted' ? "تم قبول المهمة وإرسال إشعار للإدارة ✔️" : "تم رفض المهمة وإرسال السبب للإدارة ✔️");
+                openMemberTasks();
+            } catch(e) { alert("خطأ: " + e.message); }
+        };
+
+        window.openRejectTaskModal = function(taskId) {
+            window.pendingRejectTaskId = taskId;
+            document.getElementById('reject-task-reason-input').value = '';
+            showModal('reject-task-modal');
+        };
+
+        window.confirmRejectTask = async function() {
+            const reason = document.getElementById('reject-task-reason-input').value.trim();
+            if(!reason) return alert("الرجاء ذكر سبب رفض المهمة!");
+            const btn = document.getElementById('confirm-reject-task-btn');
+            btn.innerText = "جاري الإرسال...";
+            await window.memberRespondTask(window.pendingRejectTaskId, 'rejected', reason);
+            btn.innerText = "تأكيد الرفض وإرسال الإشعار";
+            closeModal('reject-task-modal');
+        };
+
+        // ضغط العضو على (اكتملت المهمة)
+        window.memberCompleteTask = async function(taskId) {
+            try {
+                const snap = await getDoc(doc(db, "tasks", taskId));
+                if(!snap.exists()) return;
+                const t = snap.data();
+
+                await setDoc(doc(db, "tasks", taskId), { status: 'completed' }, { merge: true });
+
+                const notifId = `notif_task_comp_${taskId}_${Date.now()}`;
+                await setDoc(doc(db, "notifications", notifId), {
+                    id: notifId,
+                    type: 'task_completed',
+                    taskId: taskId,
+                    taskTitle: t.title,
+                    username: window.currentUserId,
+                    memberName: window.currentUserData.name,
+                    memberImage: window.currentUserData.image || '325152.jpg',
+                    status: 'completed',
+                    createdAt: new Date().toISOString()
+                });
+
+                alert("تم إرسال إشعار اكتمال المهمة إلى الإدارة بنجاح ✔️");
+                openMemberTasks();
+            } catch(e) { alert("خطأ: " + e.message); }
+        };
+
+        // فتح نافذة كتابة وإرسال التقرير المصور
+        window.openSubmitReportModal = function(taskId, taskTitle) {
+            window.pendingReportTaskId = taskId;
+            document.getElementById('report-modal-task-title').innerText = taskTitle ? `المهمة: ${taskTitle}` : '';
+            document.getElementById('task-report-text').value = '';
+            document.getElementById('task-report-images').value = '';
+            showModal('submit-report-modal');
+        };
+
+        window.submitTaskReportToManager = async function() {
+            const taskId = window.pendingReportTaskId;
+            const reportText = document.getElementById('task-report-text').value.trim();
+            const files = document.getElementById('task-report-images').files;
+            const btn = document.getElementById('send-report-btn');
+
+            if(!reportText && (!files || files.length === 0)) {
+                return alert("الرجاء كتابة نص التقرير أو إرفاق صورة على الأقل!");
+            }
+
+            btn.innerText = "جاري رفع الصور وإرسال التقرير ⏳...";
+            try {
+                const snap = await getDoc(doc(db, "tasks", taskId));
+                if(!snap.exists()) return;
+                const t = snap.data();
+
+                const uploadedImages = [];
+                if(files && files.length > 0) {
+                    const maxFiles = Math.min(files.length, 4); // حد أقصى 4 صور لضمان سرعة الحفظ
+                    for(let i = 0; i < maxFiles; i++) {
+                        const base64 = await compressAndConvertImage(files[i]);
+                        uploadedImages.push(base64);
+                    }
+                }
+
+                await setDoc(doc(db, "tasks", taskId), {
+                    status: 'report_submitted',
+                    reportText: reportText,
+                    reportImages: uploadedImages
+                }, { merge: true });
+
+                const notifId = `notif_task_rep_${taskId}_${Date.now()}`;
+                await setDoc(doc(db, "notifications", notifId), {
+                    id: notifId,
+                    type: 'task_report_submitted',
+                    taskId: taskId,
+                    taskTitle: t.title,
+                    username: window.currentUserId,
+                    memberName: window.currentUserData.name,
+                    memberImage: window.currentUserData.image || '325152.jpg',
+                    status: 'report_submitted',
+                    reportText: reportText,
+                    reportImages: uploadedImages,
+                    createdAt: new Date().toISOString()
+                });
+
+                alert("تم إرسال التقرير والصور إلى الشخص المطلوب بنجاح 📤✔️");
+                closeModal('submit-report-modal');
+                openMemberTasks();
+            } catch(e) {
+                alert("فشل إرسال التقرير: " + e.message);
+            } finally {
+                btn.innerText = "إرسال التقرير الآن 📤";
+            }
+        };
+
+        // ==========================================================
+        // --- نظام الاجتماعات والإشعارات والخبر العاجل (مع التوقيت 10 ثواني) ---
+        // ==========================================================
+
+        window.openManagerMeetings = async function() {
+            showSection('meetings-section', 'manager');
+            const targetSelect = document.getElementById('meet-target');
+            targetSelect.innerHTML = '<option value="الجميع">الجميع (كافة أعضاء الفريق)</option>';
+            try {
+                const qs = await getDocs(collection(db, "offices"));
+                qs.forEach(snap => {
+                    targetSelect.innerHTML += `<option value="${snap.id}">مكتب: ${snap.id}</option>`;
+                });
+            } catch(e) {}
+            loadManagerMeetingsList();
+        };
+
+        window.createMeeting = async function() {
+            const title = document.getElementById('meet-title').value.trim();
+            const date = document.getElementById('meet-date').value;
+            const time = document.getElementById('meet-time').value;
+            const location = document.getElementById('meet-location').value.trim();
+            const target = document.getElementById('meet-target').value;
+            const btn = document.getElementById('create-meet-btn');
+
+            if(!title || !date || !time || !location) return alert("الرجاء تعبئة كافة تفاصيل الاجتماع!");
+
+            const meetId = 'meet_' + Date.now();
+            btn.innerText = "جاري الإعلان والإرسال ⏳...";
+            try {
+                await setDoc(doc(db, "meetings", meetId), {
+                    id: meetId,
+                    title: title,
+                    date: date,
+                    time: time,
+                    location: location,
+                    target: target,
+                    responses: {},
+                    createdAt: new Date().toISOString()
+                });
+                alert("تم إعلان الاجتماع وإرسال إشعار عاجل للأعضاء المقصودين بنجاح ✔️");
+                document.getElementById('meet-title').value = '';
+                document.getElementById('meet-date').value = '';
+                document.getElementById('meet-time').value = '';
+                document.getElementById('meet-location').value = '';
+                loadManagerMeetingsList();
+            } catch(e) {
+                alert("فشل إنشاء الاجتماع: " + e.message);
+            } finally {
+                btn.innerText = "إعلان وإرسال للأعضاء 🔔";
+            }
+        };
+
+        window.loadManagerMeetingsList = async function() {
+            const container = document.getElementById('manager-meetings-list');
+            container.innerHTML = '<p style="text-align:center;">جاري تحميل الاجتماعات...</p>';
+            try {
+                const qs = await getDocs(collection(db, "meetings"));
+                const meetings = [];
+                qs.forEach(d => meetings.push(d.data()));
+                meetings.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+                let html = '';
+                meetings.forEach(m => {
+                    const responsesObj = m.responses || {};
+                    const respList = Object.values(responsesObj);
+                    const acceptedCount = respList.filter(r => r.status === 'accepted').length;
+                    const rejectedCount = respList.filter(r => r.status === 'rejected').length;
+
+                    html += `
+                    <div class="meeting-card fade-in" style="cursor:pointer;" onclick="openMeetingResponsesModal('${m.id}')">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="color:#d4af37; font-size:1.2rem;"><i class="fas fa-handshake"></i> ${m.title}</h3>
+                            <button class="btn-danger" style="padding:4px 10px; font-size:0.8rem;" onclick="event.stopPropagation(); deleteMeeting('${m.id}')"><i class="fas fa-trash"></i> حذف</button>
+                        </div>
+                        <div class="meeting-meta">
+                            <span><i class="fas fa-calendar-alt"></i> ${m.date}</span>
+                            <span><i class="fas fa-clock"></i> ${m.time}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${m.location}</span>
+                            <span><i class="fas fa-bullseye"></i> المستهدف: ${m.target}</span>
+                        </div>
+                        <div style="display:flex; gap:15px; font-size:0.9rem; margin-top:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+                            <span style="color:#28a745; font-weight:bold;"><i class="fas fa-check-circle"></i> القبول: ${acceptedCount}</span>
+                            <span style="color:#ff4d4d; font-weight:bold;"><i class="fas fa-times-circle"></i> الرفض: ${rejectedCount}</span>
+                            <span style="color:#d4af37; margin-right:auto;">اضغط لعرض التفاصيل <i class="fas fa-eye"></i></span>
+                        </div>
+                    </div>`;
+                });
+                container.innerHTML = html || '<p style="text-align:center; color:#ccc;">لا توجد اجتماعات معلنة حالياً.</p>';
+            } catch(e) {
+                container.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ في جلب الاجتماعات</p>';
+            }
+        };
+
+        window.deleteMeeting = async function(meetId) {
+            if(confirm("هل أنت متأكد من حذف هذا الاجتماع؟")) {
+                try {
+                    await deleteDoc(doc(db, "meetings", meetId));
+                    loadManagerMeetingsList();
+                } catch(e) { alert("فشل الحذف"); }
+            }
+        };
+
+        window.openMeetingResponsesModal = async function(meetId) {
+            const listContainer = document.getElementById('meeting-responses-list');
+            listContainer.innerHTML = '<p style="text-align:center;">جاري جلب الردود...</p>';
+            showModal('meeting-responses-modal');
+
+            try {
+                const snap = await getDoc(doc(db, "meetings", meetId));
+                if(!snap.exists()) return;
+                const m = snap.data();
+                document.getElementById('resp-modal-title').innerText = `ردود الأعضاء: ${m.title}`;
+                
+                const responses = Object.values(m.responses || {});
+                const acceptedCount = responses.filter(r => r.status === 'accepted').length;
+                const rejectedCount = responses.filter(r => r.status === 'rejected').length;
+                document.getElementById('resp-modal-stats').innerText = `إجمالي الردود: ${responses.length} | القبول: ${acceptedCount} | الرفض: ${rejectedCount}`;
+
+                if(responses.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align:center; color:#ccc; padding:15px;">لم يقم أي عضو بالرد على هذا الاجتماع حتى الآن.</p>';
+                    return;
+                }
+
+                let html = '';
+                responses.forEach(r => {
+                    const isAccepted = r.status === 'accepted';
+                    const statusBadge = isAccepted 
+                        ? `<span style="background:#28a745; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">قبل الاجتماع ✔️</span>`
+                        : `<span style="background:#dc3545; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">رفض الاجتماع ❌</span>`;
+                    
+                    const reasonBox = (!isAccepted && r.reason) 
+                        ? `<div style="margin-top:6px; background:rgba(220,53,69,0.2); border:1px solid rgba(220,53,69,0.5); padding:6px 10px; border-radius:8px; font-size:0.85rem; color:#ffcccc;"><strong>سبب الرفض:</strong> ${r.reason}</div>` 
+                        : '';
+
+                    html += `
+                    <div class="response-item ${isAccepted ? 'accepted' : 'rejected'}">
+                        <img src="${r.image || '325152.jpg'}" alt="${r.name}">
+                        <div style="flex:1; text-align:right;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong style="font-size:1rem;">${r.name}</strong>
+                                ${statusBadge}
+                            </div>
+                            ${reasonBox}
+                        </div>
+                    </div>`;
+                });
+                listContainer.innerHTML = html;
+            } catch(e) {
+                listContainer.innerHTML = '<p style="color:#ff4d4d; text-align:center;">تعذر جلب التفاصيل</p>';
+            }
+        };
+
+        // مركز إشعارات المديرة (يعرض إشعارات الاجتماعات + إشعارات المهام والتقارير مع أزرار تم وإرسال تقرير)
+        async function loadManagerNotificationsBadge() {
+            try {
+                const qs = await getDocs(collection(db, "notifications"));
+                const count = qs.size;
+                const badge = document.getElementById('manager-notif-badge');
+                if(count > 0) {
+                    badge.innerText = count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } catch(e) {}
+        }
+
+        window.openNotificationsModal = async function() {
+            showModal('notifications-modal');
+            const list = document.getElementById('notifications-list');
+            list.innerHTML = '<p style="text-align:center;">جاري جلب الإشعارات...</p>';
+            try {
+                const qs = await getDocs(collection(db, "notifications"));
+                const notifs = [];
+                qs.forEach(d => notifs.push(d.data()));
+                notifs.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+                let html = '';
+                notifs.forEach(n => {
+                    if(n.type && n.type.startsWith('task_')) {
+                        // إشعارات المهام
+                        let descHtml = '';
+                        let extraContent = '';
+
+                        if(n.type === 'task_accepted') {
+                            descHtml = `<span style="color:#28a745; font-weight:bold;">قبل المهمة:</span> <strong style="color:#d4af37;">(${n.taskTitle})</strong>`;
+                        } else if(n.type === 'task_rejected') {
+                            descHtml = `<span style="color:#ff4d4d; font-weight:bold;">رفض المهمة:</span> <strong style="color:#d4af37;">(${n.taskTitle})</strong>`;
+                            if(n.reason) extraContent = `<div style="margin-top:5px; font-size:0.85rem; color:#ffcccc; background:rgba(220,53,69,0.2); padding:5px 8px; border-radius:6px;">سبب الرفض: "${n.reason}"</div>`;
+                        } else if(n.type === 'task_completed') {
+                            descHtml = `<span style="color:#00bfff; font-weight:bold;">أكمل المهمة بنجاح:</span> <strong style="color:#d4af37;">(${n.taskTitle})</strong>`;
+                            extraContent = `
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="btn-action" style="background:#28a745; padding:5px 12px;" onclick="managerApproveTask('${n.taskId}')">تم ✔️</button>
+                                <button class="btn-action" style="background:#fd7e14; padding:5px 12px;" onclick="managerRequestReport('${n.taskId}')">إرسال تقرير 📄</button>
+                            </div>`;
+                        } else if(n.type === 'task_report_submitted') {
+                            descHtml = `<span style="color:#d4af37; font-weight:bold;">أرسل تقريراً حول مهمة:</span> <strong style="color:#fff;">(${n.taskTitle})</strong>`;
+                            let imgs = '';
+                            if(n.reportImages && n.reportImages.length > 0) {
+                                imgs = `<div class="report-images-grid">` + n.reportImages.map(src => `<img src="${src}" onclick="viewFullImage('${src}')">`).join('') + `</div>`;
+                            }
+                            extraContent = `
+                            <div style="margin-top:6px; background:rgba(255,255,255,0.1); padding:8px; border-radius:8px; font-size:0.85rem;">
+                                <strong>التقرير:</strong> ${n.reportText || 'مرفق صور'}
+                                ${imgs}
+                            </div>
+                            <button class="btn-action" style="background:#28a745; margin-top:8px; padding:5px 14px;" onclick="managerApproveTask('${n.taskId}')">تم (اعتماد التقرير) ✔️</button>`;
+                        }
+
+                        html += `
+                        <div class="response-item ${n.status === 'rejected' ? 'rejected' : 'accepted'}">
+                            <img src="${n.memberImage || '325152.jpg'}">
+                            <div style="flex:1; text-align:right; font-size:0.9rem;">
+                                <div><strong>${n.memberName}</strong> ${descHtml}</div>
+                                ${extraContent}
+                            </div>
+                        </div>`;
+                    } else {
+                        // إشعارات الاجتماعات
+                        const isAccepted = n.status === 'accepted';
+                        const actionText = isAccepted 
+                            ? `<span style="color:#28a745; font-weight:bold;">قام بقبول حضور</span>` 
+                            : `<span style="color:#ff4d4d; font-weight:bold;">قام برفض حضور</span>`;
+                        const reasonHtml = (!isAccepted && n.reason) 
+                            ? `<div style="margin-top:5px; font-size:0.85rem; color:#ffcccc; background:rgba(220,53,69,0.2); padding:5px 8px; border-radius:6px;">الرسالة: "${n.reason}"</div>` 
+                            : '';
+
+                        html += `
+                        <div class="response-item ${isAccepted ? 'accepted' : 'rejected'}">
+                            <img src="${n.memberImage || '325152.jpg'}">
+                            <div style="flex:1; text-align:right; font-size:0.9rem;">
+                                <div><strong>${n.memberName}</strong> ${actionText} اجتماع: <strong style="color:#d4af37;">(${n.meetingTitle})</strong></div>
+                                ${reasonHtml}
+                            </div>
+                        </div>`;
+                    }
+                });
+                list.innerHTML = html || '<p style="text-align:center; color:#ccc; padding:15px;">لا توجد إشعارات جديدة.</p>';
+                loadManagerNotificationsBadge();
+            } catch(e) {
+                list.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ في جلب الإشعارات</p>';
+            }
+        };
+
+        window.clearNotifications = async function() {
+            if(!confirm("هل تريد مسح جميع الإشعارات؟")) return;
+            try {
+                const qs = await getDocs(collection(db, "notifications"));
+                for(const d of qs.docs) {
+                    await deleteDoc(doc(db, "notifications", d.id));
+                }
+                openNotificationsModal();
+                loadManagerNotificationsBadge();
+            } catch(e) {}
+        };
+
+        // فحص الاجتماعات العاجلة للعضو مع إخفاء تلقائي بعد 10 ثواني
+        async function checkMemberUrgentMeetings() {
+            try {
+                const qs = await getDocs(collection(db, "meetings"));
+                const userOffice = window.currentUserData.office || '';
+                const username = window.currentUserId;
+                let urgentMeeting = null;
+                let unrespondedCount = 0;
+
+                qs.forEach(d => {
+                    const m = d.data();
+                    if(m.target === 'الجميع' || (userOffice && m.target === userOffice)) {
+                        urgentMeeting = m;
+                        if(!m.responses || !m.responses[username]) {
+                            unrespondedCount++;
+                        }
+                    }
+                });
+
+                const banner = document.getElementById('member-breaking-banner');
+                const badge = document.getElementById('member-meet-badge');
+
+                if(urgentMeeting) {
+                    document.getElementById('member-breaking-text').innerText = `عاجل: اجتماع "${urgentMeeting.title}" بتاريخ ${urgentMeeting.date} الساعة ${urgentMeeting.time} في (${urgentMeeting.location}) - اضغط للرد!`;
+                    banner.classList.remove('hidden');
+
+                    // إخفاء الخبر العاجل تلقائياً بعد 10 ثوانٍ
+                    if(window.breakingBannerTimeout) clearTimeout(window.breakingBannerTimeout);
+                    window.breakingBannerTimeout = setTimeout(() => {
+                        banner.classList.add('hidden');
+                    }, 10000);
+
+                    if(unrespondedCount > 0) {
+                        badge.innerText = unrespondedCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                } else {
+                    banner.classList.add('hidden');
+                    badge.classList.add('hidden');
+                }
+            } catch(e) {}
+        }
+
+        window.openMemberMeetings = async function() {
+            showSection('member-meetings-section', 'member');
+            const container = document.getElementById('member-meetings-list');
+            container.innerHTML = '<p style="text-align:center;">جاري جلب الاجتماعات المخصصة لك...</p>';
+
+            try {
+                const qs = await getDocs(collection(db, "meetings"));
+                const userOffice = window.currentUserData.office || '';
+                const username = window.currentUserId;
+                const myMeetings = [];
+
+                qs.forEach(d => {
+                    const m = d.data();
+                    if(m.target === 'الجميع' || (userOffice && m.target === userOffice)) {
+                        myMeetings.push(m);
+                    }
+                });
+                myMeetings.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+                let html = '';
+                myMeetings.forEach(m => {
+                    const myResp = (m.responses && m.responses[username]) ? m.responses[username] : null;
+                    let statusSection = '';
+
+                    if(myResp) {
+                        if(myResp.status === 'accepted') {
+                            statusSection = `<div style="background:rgba(40,167,69,0.25); border:1px solid #28a745; padding:10px; border-radius:10px; color:#fff; font-weight:bold; text-align:center;">تم تأكيد قبولك لحضور هذا الاجتماع ✔️</div>`;
+                        } else {
+                            statusSection = `<div style="background:rgba(220,53,69,0.25); border:1px solid #dc3545; padding:10px; border-radius:10px; color:#fff; text-align:center;"><strong>تم إرسال اعتذارك عن الاجتماع ❌</strong><br><span style="font-size:0.85rem; color:#ffcccc;">السبب المرسل: ${myResp.reason}</span></div>`;
+                        }
+                    } else {
+                        statusSection = `
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button class="btn-submit" style="background:#28a745; flex:1;" onclick="respondToMeeting('${m.id}', '${m.title}', 'accepted')">
+                                <i class="fas fa-check"></i> قبول الاجتماع
+                            </button>
+                            <button class="btn-submit" style="background:#dc3545; flex:1;" onclick="openRejectMeetingModal('${m.id}', '${m.title}')">
+                                <i class="fas fa-times"></i> رفض الاجتماع
+                            </button>
+                        </div>`;
+                    }
+
+                    html += `
+                    <div class="meeting-card fade-in">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="color:#d4af37; font-size:1.3rem;"><i class="fas fa-bullhorn"></i> ${m.title}</h3>
+                            <span class="rank-badge">${m.target === 'الجميع' ? 'اجتماع عام للجميع' : 'خاص بمكتب: ' + m.target}</span>
+                        </div>
+                        <div class="meeting-meta">
+                            <span><i class="fas fa-calendar-alt"></i> التاريخ: ${m.date}</span>
+                            <span><i class="fas fa-clock"></i> الوقت: ${m.time}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> المكان: ${m.location}</span>
+                        </div>
+                        ${statusSection}
+                    </div>`;
+                });
+
+                container.innerHTML = html || '<div class="glass-panel" style="margin:0 auto;"><p>لا يوجد أي اجتماع معلن لك حالياً.</p></div>';
+            } catch(e) {
+                container.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ أثناء تحميل الاجتماعات</p>';
+            }
+        };
+
+        window.respondToMeeting = async function(meetId, meetTitle, status, reason = '') {
+            try {
+                const username = window.currentUserId;
+                const userData = window.currentUserData;
+                const responsePayload = {
+                    username: username,
+                    name: userData.name,
+                    image: userData.image || '325152.jpg',
+                    status: status,
+                    reason: reason,
+                    timestamp: new Date().toISOString()
+                };
+
+                await setDoc(doc(db, "meetings", meetId), {
+                    responses: {
+                        [username]: responsePayload
+                    }
+                }, { merge: true });
+
+                const notifId = `notif_${meetId}_${username}`;
+                await setDoc(doc(db, "notifications", notifId), {
+                    id: notifId,
+                    type: 'meeting_response',
+                    meetingId: meetId,
+                    meetingTitle: meetTitle,
+                    username: username,
+                    memberName: userData.name,
+                    memberImage: userData.image || '325152.jpg',
+                    status: status,
+                    reason: reason,
+                    createdAt: new Date().toISOString()
+                });
+
+                alert(status === 'accepted' ? "تم تسجيل قبولك للاجتماع وإبلاغ المديرة ✔️" : "تم إرسال اعتذارك وسبب الرفض إلى المديرة ✔️");
+                openMemberMeetings();
+            } catch(e) {
+                alert("حدث خطأ أثناء إرسال الرد: " + e.message);
+            }
+        };
+
+        window.openRejectMeetingModal = function(meetId, meetTitle) {
+            window.pendingRejectMeetingId = meetId;
+            window.pendingRejectMeetingTitle = meetTitle;
+            document.getElementById('reject-reason-input').value = '';
+            showModal('reject-meeting-modal');
+        };
+
+        window.confirmRejectMeeting = async function() {
+            const reason = document.getElementById('reject-reason-input').value.trim();
+            if(!reason) return alert("الرجاء كتابة سبب الرفض / الاعتذار قبل التأكيد!");
+            const btn = document.getElementById('confirm-reject-btn');
+            btn.innerText = "جاري الإرسال...";
+            await window.respondToMeeting(window.pendingRejectMeetingId, window.pendingRejectMeetingTitle, 'rejected', reason);
+            btn.innerText = "تأكيد الرفض وإرسال الرسالة";
+            closeModal('reject-meeting-modal');
+        };
+
+        // ==========================================================
+        // --- بقية دوال النظام (الإعدادات، الفريق، المكاتب، الإضافة) ---
+        // ==========================================================
+        window.openSettings = function() { document.getElementById('set-username').value = window.currentUserId; document.getElementById('set-password').value = window.currentUserPass; showModal('settings-modal'); if(window.currentDashboard) document.getElementById(window.currentDashboard.replace('-dashboard','-sidebar')).classList.remove('active'); };
+        window.saveSettings = async function() {
+            const newUsername = document.getElementById('set-username').value.trim(), newPass = document.getElementById('set-password').value, btn = document.getElementById('save-settings-btn');
+            if(!newUsername || !newPass) return alert("الرجاء تعبئة الحقول"); if(window.currentUserId === 'admin') return alert("حساب المالك الأساسي ثابت.");
+            try {
+                btn.innerText = "جاري التحديث...";
+                if(newUsername !== window.currentUserId) {
+                    const newData = { ...window.currentUserData, username: newUsername, pass: newPass };
+                    await setDoc(doc(db, "users", newUsername), newData); await deleteDoc(doc(db, "users", window.currentUserId));
+                    window.currentUserId = newUsername; window.currentUserData = newData;
+                } else { window.currentUserData.pass = newPass; await setDoc(doc(db, "users", window.currentUserId), window.currentUserData, { merge: true }); }
+                window.currentUserPass = newPass; alert("تم التحديث بنجاح!"); closeModal('settings-modal');
+            } catch(error) { alert("فشل التحديث: " + error.message); } finally { btn.innerText = "تحديث البيانات"; }
+        };
+
+        window.openAddMemberSection = async function() {
+            showSection('add-member-section', 'manager');
+            const officeSelect = document.getElementById('new-member-office');
+            officeSelect.innerHTML = '<option value="">-- اختر المكتب --</option>';
+            try {
+                const qs = await getDocs(collection(db, "offices"));
+                qs.forEach(snap => { officeSelect.innerHTML += `<option value="${snap.id}">${snap.id}</option>`; });
+            } catch(e) {}
+        };
+
+        window.toggleNewMemberOfficeSelect = function() {
+            const type = document.getElementById('member-type').value;
+            const box = document.getElementById('new-member-office-box');
+            if(type === 'عضو مكتب') box.classList.remove('hidden');
+            else box.classList.add('hidden');
+        };
+
+        window.loadTeam = async function() {
+            showSection('team-section', 'manager');
+            const container = document.getElementById('team-container');
+            container.innerHTML = '<h3 style="color:#fff;">جاري تحميل الفريق ⏳...</h3>';
+            try {
+                const querySnapshot = await getDocs(collection(db, "users")); let html = '';
+                querySnapshot.forEach((docSnap) => {
+                    const d = docSnap.data();
+                    if(d.role === 'مديرة' || d.role === 'نائب مدير') return;
+
+                    const officeInfo = d.office ? `<div class="rank-badge">${d.office} | ${d.officeRank || 'عضو مكتب'}</div>` : '';
+                    html += `
+                    <div class="team-card fade-in" onclick="openEditMemberModal('${d.username}')">
+                        <i class="fas fa-user-cog edit-hint" title="تعديل وترقية"></i>
+                        <img src="${d.image || '325152.jpg'}">
+                        <h3>${d.name}</h3>
+                        <p style="color:#d4af37; font-size:0.9rem;">${d.role}</p>
+                        ${officeInfo}
+                    </div>`;
+                });
+                container.innerHTML = html || '<p>لا يوجد أعضاء مضافين حالياً.</p>';
+            } catch (error) { container.innerHTML = '<p style="color:#ff4d4d">حدث خطأ في جلب البيانات</p>'; }
+        };
+
+        window.openEditMemberModal = async function(username) {
+            window.currentEditingUser = username;
+            try {
+                const docSnap = await getDoc(doc(db, "users", username));
+                if(!docSnap.exists()) return;
+                const data = docSnap.data();
+                
+                document.getElementById('edit-preview-img').src = data.image || '325152.jpg';
+                document.getElementById('edit-name').value = data.name || '';
+                document.getElementById('edit-username').value = data.username || '';
+                document.getElementById('edit-password').value = data.pass || '';
+                document.getElementById('edit-phone').value = data.phone || '';
+                document.getElementById('edit-role').value = data.role === 'عضو عام' ? 'عضو عام' : 'عضو مكتب';
+                document.getElementById('edit-office-rank').value = data.officeRank || 'عضو مكتب';
+
+                const officeSelect = document.getElementById('edit-office');
+                officeSelect.innerHTML = '<option value="">-- بدون مكتب --</option>';
+                const qs = await getDocs(collection(db, "offices"));
+                qs.forEach(snap => {
+                    const selected = (data.office === snap.id) ? 'selected' : '';
+                    officeSelect.innerHTML += `<option value="${snap.id}" ${selected}>${snap.id}</option>`;
+                });
+                
+                showModal('edit-member-modal');
+            } catch(e) { alert("فشل جلب بيانات العضو!"); }
+        };
+
+        window.updateMemberInDB = async function() {
+            const originalUser = window.currentEditingUser;
+            const newUser = document.getElementById('edit-username').value.trim();
+            const btn = document.getElementById('update-member-btn');
+            
+            if(!newUser) return alert("لا يمكن ترك اسم المستخدم فارغاً");
+            btn.innerText = "جاري الحفظ...";
+
+            try {
+                const docSnap = await getDoc(doc(db, "users", originalUser));
+                const oldData = docSnap.data();
+                const selectedOffice = document.getElementById('edit-office').value;
+                const selectedRank = selectedOffice ? document.getElementById('edit-office-rank').value : '';
+                const updatedRole = selectedOffice ? `عضو مكتب (${selectedOffice})` : document.getElementById('edit-role').value;
+
+                const newData = {
+                    ...oldData,
+                    username: newUser,
+                    name: document.getElementById('edit-name').value,
+                    pass: document.getElementById('edit-password').value,
+                    phone: document.getElementById('edit-phone').value,
+                    role: updatedRole,
+                    office: selectedOffice,
+                    officeRank: selectedRank
+                };
+
+                if(newUser !== originalUser) {
+                    await setDoc(doc(db, "users", newUser), newData);
+                    await deleteDoc(doc(db, "users", originalUser));
+                } else {
+                    await setDoc(doc(db, "users", originalUser), newData, { merge: true });
+                }
+
+                alert("تم تحديث بيانات وترقية العضو بنجاح ✔️");
+                closeModal('edit-member-modal');
+                if(!document.getElementById('team-section').classList.contains('hidden')) loadTeam();
+                if(!document.getElementById('manage-offices-section').classList.contains('hidden')) loadOffices();
+            } catch(e) { alert("خطأ: " + e.message); } 
+            finally { btn.innerText = "حفظ التعديلات والترقية"; }
+        };
+
+        window.deleteMember = async function() {
+            if(confirm("هل أنت متأكد من حذف حساب هذا العضو نهائياً من التطبيق؟")) {
+                try {
+                    await deleteDoc(doc(db, "users", window.currentEditingUser));
+                    alert("تم حذف العضو!"); closeModal('edit-member-modal');
+                    if(!document.getElementById('team-section').classList.contains('hidden')) loadTeam();
+                    if(!document.getElementById('manage-offices-section').classList.contains('hidden')) loadOffices();
+                } catch(e) { alert("فشل الحذف"); }
+            }
+        };
+
+        window.saveOfficeToDB = async function() {
+            const name = document.getElementById('office-name').value.trim();
+            if(!name) return alert("الرجاء كتابة اسم المكتب");
+            try {
+                await setDoc(doc(db, "offices", name), { name: name, createdAt: new Date().toISOString() });
+                alert("تم إضافة المكتب بنجاح ✔️"); closeModal('add-office-modal'); document.getElementById('office-name').value = '';
+                if(!document.getElementById('manage-offices-section').classList.contains('hidden')) loadOffices();
+            } catch(e) { alert("خطأ في الحفظ: " + e.message); }
+        };
+
+        window.loadOffices = async function() {
+            showSection('manage-offices-section', 'manager');
+            const container = document.getElementById('offices-container');
+            container.innerHTML = '<h3 style="color:#fff; text-align:center;">جاري تحميل المكاتب وملفات الأعضاء ⏳...</h3>';
+            try {
+                const officesSnap = await getDocs(collection(db, "offices"));
+                const usersSnap = await getDocs(collection(db, "users"));
+                
+                const allUsers = [];
+                usersSnap.forEach(u => {
+                    const data = u.data();
+                    if(data.role !== 'مديرة' && data.role !== 'نائب مدير') {
+                        allUsers.push(data);
+                    }
+                });
+
+                let html = '';
+                officesSnap.forEach(officeDoc => {
+                    const officeName = officeDoc.id;
+                    const officeMembers = allUsers
+                        .filter(u => u.office === officeName)
+                        .sort((a, b) => RANKS_ORDER.indexOf(b.officeRank || 'عضو مكتب') - RANKS_ORDER.indexOf(a.officeRank || 'عضو مكتب'));
+
+                    let membersHtml = '';
+                    if(officeMembers.length === 0) {
+                        membersHtml = `<p style="color:#ccc; text-align:center; padding:10px;">لا يوجد أعضاء مضافين في هذا المكتب حالياً. اضغط على زر (+) لإضافة أعضاء.</p>`;
+                    } else {
+                        officeMembers.forEach(m => {
+                            const currentRank = m.officeRank || 'عضو مكتب';
+                            membersHtml += `
+                            <div class="office-member-card fade-in">
+                                <div class="office-member-info">
+                                    <img src="${m.image || '325152.jpg'}" alt="${m.name}">
+                                    <div class="office-member-details">
+                                        <div style="font-size:1.1rem; font-weight:bold; color:#fff;">${m.name}</div>
+                                        <div style="color:#ddd;">اسم المستخدم: <span style="color:#d4af37;">@${m.username}</span> | الهاتف: <span dir="ltr">${m.phone || 'غير مسجل'}</span></div>
+                                        <div>الرتبة في المكتب: <span class="rank-badge">${currentRank}</span></div>
+                                    </div>
+                                </div>
+                                <div class="office-member-actions">
+                                    <button class="btn-action btn-rank-toggle" onclick="openRankSelectModal('${m.username}', '${m.name}', '${currentRank}')">
+                                        <i class="fas fa-sort"></i> ترقية / خفض
+                                    </button>
+                                    <button class="btn-action btn-edit-profile" onclick="openEditMemberModal('${m.username}')">
+                                        <i class="fas fa-edit"></i> تعديل الملف
+                                    </button>
+                                    <button class="btn-action btn-remove-office" onclick="removeMemberFromOffice('${m.username}', '${m.name}', '${officeName}')">
+                                        <i class="fas fa-user-times"></i> حذف من المكتب
+                                    </button>
+                                </div>
+                            </div>`;
+                        });
+                    }
+
+                    html += `
+                    <div class="office-block fade-in">
+                        <div class="office-block-header">
+                            <div>
+                                <h3 style="color:#d4af37; font-size:1.3rem;"><i class="fas fa-building"></i> مكتب: ${officeName}</h3>
+                                <span style="font-size:0.85rem; color:#ccc;">عدد الأعضاء: ${officeMembers.length}</span>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <button class="btn-add-member-office" onclick="openAssignMemberToOfficeModal('${officeName}')">
+                                    <i class="fas fa-plus"></i> إضافة عضو
+                                </button>
+                                <button class="btn-danger" onclick="deleteOffice('${officeName}')">
+                                    <i class="fas fa-trash"></i> حذف المكتب
+                                </button>
+                            </div>
+                        </div>
+                        <div>${membersHtml}</div>
+                    </div>`;
+                });
+
+                container.innerHTML = html || '<p style="text-align:center;">لا يوجد مكاتب مضافة حالياً، اضغط على "إضافة مكتب جديد" للبدء.</p>';
+            } catch (error) {
+                container.innerHTML = '<p style="color:#ff4d4d; text-align:center;">حدث خطأ في جلب المكاتب</p>';
+            }
+        };
+
+        window.openAssignMemberToOfficeModal = async function(officeName) {
+            window.targetOfficeForAssign = officeName;
+            document.getElementById('target-office-title').innerText = officeName;
+            const select = document.getElementById('assign-member-select');
+            select.innerHTML = '<option value="">جاري جلب الأعضاء...</option>';
+            showModal('assign-office-member-modal');
+
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                let optionsHtml = '<option value="">-- اختر العضو لإضافته --</option>';
+                usersSnap.forEach(docSnap => {
+                    const u = docSnap.data();
+                    if(u.role === 'مديرة' || u.role === 'نائب مدير' || u.office === officeName) return;
+                    const currentOfficeNote = u.office ? `(موجود في: ${u.office})` : '(عضو عام)';
+                    optionsHtml += `<option value="${u.username}">${u.name} - ${currentOfficeNote}</option>`;
+                });
+                select.innerHTML = optionsHtml;
+            } catch(e) {
+                select.innerHTML = '<option value="">حدث خطأ في جلب الأعضاء</option>';
+            }
+        };
+
+        window.confirmAssignMemberToOffice = async function() {
+            const username = document.getElementById('assign-member-select').value;
+            const rank = document.getElementById('assign-member-rank').value;
+            const officeName = window.targetOfficeForAssign;
+            const btn = document.getElementById('confirm-assign-btn');
+
+            if(!username) return alert("الرجاء اختيار عضو أولاً!");
+            btn.innerText = "جاري الإضافة...";
+
+            try {
+                await setDoc(doc(db, "users", username), {
+                    office: officeName,
+                    officeRank: rank,
+                    role: `عضو مكتب (${officeName})`
+                }, { merge: true });
+                alert(`تمت إضافة العضو إلى مكتب (${officeName}) برتبة (${rank}) بنجاح ✔️`);
+                closeModal('assign-office-member-modal');
+                loadOffices();
+            } catch(e) {
+                alert("حدث خطأ أثناء الإضافة: " + e.message);
+            } finally {
+                btn.innerText = "إضافة للمكتب";
+            }
+        };
+
+        window.openRankSelectModal = function(username, fullName, currentRank) {
+            window.targetUserForRank = username;
+            document.getElementById('rank-modal-member-name').innerText = `العضو: ${fullName} (الرتبة الحالية: ${currentRank})`;
+            
+            document.querySelectorAll('.rank-option-btn').forEach(btn => btn.classList.remove('active-rank'));
+            if(currentRank === 'مشرف مكتب') document.getElementById('rank-btn-supervisor').classList.add('active-rank');
+            else if(currentRank === 'نائب مشرف') document.getElementById('rank-btn-deputy').classList.add('active-rank');
+            else document.getElementById('rank-btn-member').classList.add('active-rank');
+
+            showModal('rank-select-modal');
+        };
+
+        window.applySelectedRank = async function(newRank) {
+            const username = window.targetUserForRank;
+            if(!username) return;
+            try {
+                await setDoc(doc(db, "users", username), { officeRank: newRank }, { merge: true });
+                closeModal('rank-select-modal');
+                loadOffices();
+            } catch(e) {
+                alert("حدث خطأ أثناء تحديث الرتبة: " + e.message);
+            }
+        };
+
+        window.removeMemberFromOffice = async function(username, fullName, officeName) {
+            if(confirm(`هل أنت متأكد من إزالة (${fullName}) من مكتب (${officeName})؟`)) {
+                try {
+                    await setDoc(doc(db, "users", username), {
+                        office: '',
+                        officeRank: '',
+                        role: 'عضو عام'
+                    }, { merge: true });
+                    alert("تم إزالة العضو من المكتب بنجاح.");
+                    loadOffices();
+                } catch(e) {
+                    alert("فشل إزالة العضو من المكتب: " + e.message);
+                }
+            }
+        };
+
+        window.deleteOffice = async function(id) {
+            if(confirm(`هل أنت متأكد من حذف مكتب (${id}) بالكامل؟`)) {
+                try {
+                    await deleteDoc(doc(db, "offices", id));
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    for (const uDoc of usersSnap.docs) {
+                        if(uDoc.data().office === id) {
+                            await setDoc(doc(db, "users", uDoc.id), { office: '', officeRank: '', role: 'عضو عام' }, { merge: true });
+                        }
+                    }
+                    loadOffices();
+                } catch(e) { alert("فشل الحذف"); }
+            }
+        };
+
+        function compressAndConvertImage(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = (event) => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width, height = img.height; const MAX = 400; if (width > height) { if (width > MAX) { height *= MAX / width; width = MAX; } } else { if (height > MAX) { width *= MAX / height; height = MAX; } } canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.7)); }; }; reader.onerror = error => reject(error); }); }
+        
+        window.addManager = async function() { const user = document.getElementById('mng-username').value.trim(), pass = document.getElementById('mng-password').value, name = document.getElementById('mng-name').value, role = document.getElementById('mng-role').value, btn = document.getElementById('save-manager-btn'); if(!user || !pass) return alert("الرجاء تعبئة البيانات"); try { btn.innerText = "جاري الحفظ ⏳..."; await setDoc(doc(db, "users", user), { username: user, name: name, pass: pass, role: role, image: '325152.jpg' }); btn.style.background = "#28a745"; btn.innerText = "تم الحفظ بنجاح ✔️"; setTimeout(() => { btn.style.background = ""; btn.innerText = "حفظ بقاعدة البيانات"; showSection('owner-home'); }, 2000); } catch (error) { alert("فشل: " + error.message); btn.innerText = "حفظ بقاعدة البيانات"; } };
+        
+        window.saveMemberToDB = async function() {
+            const name = document.getElementById('new-name').value;
+            const username = document.getElementById('new-username').value.trim();
+            const pass = document.getElementById('new-password').value;
+            const phone = document.getElementById('new-phone').value;
+            const memberType = document.getElementById('member-type').value;
+            const selectedOffice = memberType === 'عضو مكتب' ? document.getElementById('new-member-office').value : '';
+            const selectedRank = selectedOffice ? document.getElementById('new-member-rank').value : '';
+            const finalRole = selectedOffice ? `عضو مكتب (${selectedOffice})` : 'عضو عام';
+            const fileInput = document.getElementById('new-image');
+            const saveBtn = document.getElementById('save-member-btn');
+
+            if(!username || !pass) return alert("يجب إدخال اسم المستخدم وكلمة السر!");
+            try {
+                saveBtn.style.background = "#555"; saveBtn.innerText = "جاري رفع الصورة والبيانات ⏳...";
+                let base64Image = '325152.jpg';
+                if(fileInput.files && fileInput.files[0]) base64Image = await compressAndConvertImage(fileInput.files[0]);
+                
+                await setDoc(doc(db, "users", username), {
+                    username: username, name: name, pass: pass, phone: phone,
+                    role: finalRole, office: selectedOffice, officeRank: selectedRank,
+                    image: base64Image, createdAt: new Date().toISOString()
+                });
+                saveBtn.style.background = "#28a745"; saveBtn.innerText = "تم رفع الصور وكل شيء بنجاح! ✔️";
+                setTimeout(() => {
+                    saveBtn.style.background = ""; saveBtn.innerText = "حفظ العضو";
+                    document.getElementById('new-name').value = ''; document.getElementById('new-username').value = ''; document.getElementById('new-password').value = ''; fileInput.value = '';
+                    showSection('manager-home');
+                }, 2000);
+            } catch (error) { alert("سبب فشل الحفظ: \n" + error.message); saveBtn.style.background = ""; saveBtn.innerText = "حفظ العضو"; }
+        };
+
+        window.sendWhatsApp = function() { const n = document.getElementById('fp-fullname').value, u = document.getElementById('fp-username').value, p = document.getElementById('fp-phone').value; if(!n || !u || !p) return alert("الرجاء تعبئة المعلومات"); window.open(`https://wa.me/963998297139?text=${encodeURIComponent(`مرحباً الإدارة،\nأنا ${n}، واسم المستخدم (${u}) ورقمي ${p}.\nأطلب إعادة تعيين كلمة السر.`)}`, '_blank'); closeModal('forgot-pwd-modal'); };
+    </script>
+</body>
+</html>
